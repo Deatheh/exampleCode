@@ -1,0 +1,99 @@
+basePath: /
+definitions:
+  entities.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  entities.Id:
+    properties:
+      id:
+        type: integer
+    type: object
+  entities.Message:
+    properties:
+      message:
+        type: string
+    type: object
+  handler.DeviceRegistrationRequest:
+    properties:
+      device_token:
+        type: string
+      id:
+        type: string
+    type: object
+  handler.InputNotificationsInfo:
+    properties:
+      body:
+        type: string
+      id:
+        type: string
+      subtitle:
+        type: string
+      title:
+        type: string
+    type: object
+info:
+  contact: {}
+  title: IQJ NOTIFICATIONS MICROSERVICE
+  version: "1.0"
+paths:
+  /device_token:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные устройства
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/handler.DeviceRegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/entities.Id'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Ошибка на стороне сервера
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Добавления нового apple устройства пользователю
+      tags:
+      - DEVICE TOKEN
+  /notification:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные уведомлениия
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/handler.InputNotificationsInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/entities.Message'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Ошибка на стороне сервера
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Отправляет уведомления на все apple устройства пользователя
+      tags:
+      - NOTIFICATION
+swagger: "2.0"
