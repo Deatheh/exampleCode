@@ -36,6 +36,7 @@ func (h *Handler) InitRoutes() *fiber.App {
 		employee.Get("/filters", h.HandlerGetAllEmployeeByFilters)
 		employee.Post("/alter", h.HandlerAlterTableEmployee)
 		employee.Get("/columns", h.HandlerColumnsEmployee)
+		employee.Get("/constrains", h.HandlerConstrainsEmployee)
 	}
 	project := r.Group("/project")
 	{
@@ -44,6 +45,7 @@ func (h *Handler) InitRoutes() *fiber.App {
 		project.Get("/filters", h.HandlerGetAllProjectByFilters)
 		project.Post("/alter", h.HandlerAlterTableProject)
 		project.Get("/columns", h.HandlerColumnsProject)
+		project.Get("/constrains", h.HandlerConstrainsProject)
 	}
 	task := r.Group("/task")
 	{
@@ -52,6 +54,11 @@ func (h *Handler) InitRoutes() *fiber.App {
 		task.Get("/filters", h.HandlerGetAllTaskByFilters)
 		task.Post("/alter", h.HandlerAlterTableTask)
 		task.Get("/columns", h.HandlerColumnsTask)
+		task.Get("/constrains", h.HandlerContsraintsTask)
+	}
+	drop := r.Group("/drop")
+	{
+		drop.Delete("", h.HandlerDrop)
 	}
 	return r
 }

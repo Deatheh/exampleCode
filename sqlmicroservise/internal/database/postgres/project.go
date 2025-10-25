@@ -72,15 +72,8 @@ func (pt *ProjectTable) GetAll() ([]map[string]interface{}, error) {
 	return results, nil
 }
 
-func (pt *ProjectTable) GetAllByFilters(outputCol, joinStrings, whereStrings, groupByStrings, havingStrings, orderByStrings string) ([]map[string]interface{}, error) {
-	query := fmt.Sprintf(`
-	SELECT %s FROM project
-		`, outputCol)
-	query += joinStrings
-	query += whereStrings
-	query += groupByStrings
-	query += havingStrings
-	query += orderByStrings
+func (pt *ProjectTable) GetAllByFilters(outputCol string) ([]map[string]interface{}, error) {
+	query := fmt.Sprintf(`%s`, outputCol)
 
 	rows, err := pt.db.Query(query)
 	if err != nil {
@@ -170,6 +163,33 @@ func (pt *ProjectTable) GetAllColumns() ([][]string, error) {
 			return nil, fmt.Errorf("Project.getAllColumns: %v", err)
 		}
 		columns = append(columns, col)
+	}
+
+	return columns, nil
+}
+
+func (pt *ProjectTable) GetAllConstraints() ([]string, error) {
+	query := `
+	SELECT constraint_name
+		FROM information_schema.table_constraints
+		WHERE table_name = 'project'
+		ORDER BY constraint_name;
+	`
+	rows, err := pt.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns project table: %v", err)
+	}
+	defer rows.Close()
+
+	var columns []string
+
+	for rows.Next() {
+		var c string
+		err := rows.Scan(&c)
+		if err != nil {
+			return nil, fmt.Errorf("News.getAllConstaints: %v", err)
+		}
+		columns = append(columns, c)
 	}
 
 	return columns, nil

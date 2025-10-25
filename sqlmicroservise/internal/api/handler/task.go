@@ -85,3 +85,12 @@ func (h *Handler) HandlerColumnsTask(c fiber.Ctx) error {
 	}
 	return c.Status(http.StatusOK).JSON(data)
 }
+
+func (h *Handler) HandlerContsraintsTask(c fiber.Ctx) error {
+	data, err := h.services.Task.GetAllConstrains()
+	if err != nil {
+		fmt.Println(err.Error())
+		return c.Status(http.StatusInternalServerError).JSON(err.Error())
+	}
+	return c.Status(http.StatusOK).JSON(data)
+}

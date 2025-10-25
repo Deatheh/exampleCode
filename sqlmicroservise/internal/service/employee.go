@@ -45,3 +45,11 @@ func (es EmployeeService) GetAllColumns() ([][]string, error) {
 	}
 	return res, nil
 }
+
+func (es EmployeeService) GetAllConstrains() ([]string, error) {
+	res, err := es.repository.GetAllConstraints()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}

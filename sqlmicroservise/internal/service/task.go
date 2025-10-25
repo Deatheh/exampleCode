@@ -45,3 +45,11 @@ func (ts TaskService) GetAllColumns() ([][]string, error) {
 	}
 	return res, nil
 }
+
+func (ts TaskService) GetAllConstrains() ([]string, error) {
+	res, err := ts.repository.GetAllConstraints()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}

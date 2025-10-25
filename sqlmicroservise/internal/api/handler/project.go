@@ -63,13 +63,10 @@ func (h *Handler) HandlerGetAllProjectByFilters(c fiber.Ctx) error {
 		fmt.Println(outputCol)
 		return c.Status(http.StatusBadRequest).JSON(fmt.Errorf("error getting project by filters: empty output columns"))
 	}
-	joinStrings := c.Query("join_string")
-	whereStrings := c.Query("where_string")
-	groupByStrings := c.Query("group_by_string")
-	havingStrings := c.Query("having_string")
-	orderByStrings := c.Query("order_by_string")
 
-	data, err := h.services.Project.GetAllByFilters(outputCol, joinStrings, whereStrings, groupByStrings, havingStrings, orderByStrings)
+	outputCol = outputCol[1 : len(outputCol)-1]
+
+	data, err := h.services.Project.GetAllByFilters(outputCol)
 	if err != nil {
 		fmt.Println(err.Error())
 		return c.Status(http.StatusInternalServerError).JSON(err.Error())
@@ -79,6 +76,15 @@ func (h *Handler) HandlerGetAllProjectByFilters(c fiber.Ctx) error {
 
 func (h *Handler) HandlerColumnsProject(c fiber.Ctx) error {
 	data, err := h.services.Project.GetAllColumns()
+	if err != nil {
+		fmt.Println(err.Error())
+		return c.Status(http.StatusInternalServerError).JSON(err.Error())
+	}
+	return c.Status(http.StatusOK).JSON(data)
+}
+
+func (h *Handler) HandlerConstrainsProject(c fiber.Ctx) error {
+	data, err := h.services.Project.GetAllConstraints()
 	if err != nil {
 		fmt.Println(err.Error())
 		return c.Status(http.StatusInternalServerError).JSON(err.Error())

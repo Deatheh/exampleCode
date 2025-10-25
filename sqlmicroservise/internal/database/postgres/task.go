@@ -175,6 +175,33 @@ func (tt *TaskTable) GetAllColumns() ([][]string, error) {
 	return columns, nil
 }
 
+func (tt *TaskTable) GetAllConstraints() ([]string, error) {
+	query := `
+	SELECT constraint_name
+		FROM information_schema.table_constraints
+		WHERE table_name = 'task'
+		ORDER BY constraint_name;
+	`
+	rows, err := tt.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns task table: %v", err)
+	}
+	defer rows.Close()
+
+	var columns []string
+
+	for rows.Next() {
+		var c string
+		err := rows.Scan(&c)
+		if err != nil {
+			return nil, fmt.Errorf("News.getAllConstaints: %v", err)
+		}
+		columns = append(columns, c)
+	}
+
+	return columns, nil
+}
+
 func newTaskTable(db *sql.DB, query string) (*TaskTable, error) {
 	_, err := db.Exec(query)
 	if err != nil {

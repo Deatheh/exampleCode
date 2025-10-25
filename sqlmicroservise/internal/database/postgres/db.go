@@ -14,6 +14,7 @@ type DatabaseRepository struct {
 	Employee *EmployeeTable
 	Project  *ProjectTable
 	Task     *TaskTable
+	Drop     *DropTable
 }
 
 type TableModel interface {
@@ -71,6 +72,10 @@ func (st *DatabaseRepository) connectTables(db *sql.DB) {
 		panic(err)
 	}
 	st.Task, err = newTaskTable(db, createTableTask)
+	if err != nil {
+		panic(err)
+	}
+	st.Drop, err = newDropTable(db)
 	if err != nil {
 		panic(err)
 	}
