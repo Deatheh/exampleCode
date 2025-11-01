@@ -60,6 +60,10 @@ func (h *Handler) InitRoutes() *fiber.App {
 	{
 		drop.Delete("", h.HandlerDrop)
 	}
+	binTree := r.Group("/bin_tree")
+	{
+		binTree.Post("", h.HandlerAddBinTree)
+	}
 	return r
 }
 

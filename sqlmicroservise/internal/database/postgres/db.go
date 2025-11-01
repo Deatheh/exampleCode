@@ -15,6 +15,7 @@ type DatabaseRepository struct {
 	Project  *ProjectTable
 	Task     *TaskTable
 	Drop     *DropTable
+	BinTree  *BinTreeTable
 }
 
 type TableModel interface {
@@ -76,6 +77,10 @@ func (st *DatabaseRepository) connectTables(db *sql.DB) {
 		panic(err)
 	}
 	st.Drop, err = newDropTable(db)
+	if err != nil {
+		panic(err)
+	}
+	st.BinTree, err = newBinTreeTable(db, createBinTree)
 	if err != nil {
 		panic(err)
 	}

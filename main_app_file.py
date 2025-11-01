@@ -1100,6 +1100,11 @@ class AddDataWindow(QDialog):
                 self.employee_input[-1].setButtonSymbols(QAbstractSpinBox.NoButtons)
                 self.employee_input[-1].setRange(1, 2147483647)
                 self.empl_form.addRow(ob[0] + ": ", self.employee_input[-1])
+            if ob[2] == "bintree":
+                self.employee_input.append(QSpinBox())
+                self.employee_input[-1].setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.employee_input[-1].setRange(1, 2147483647)
+                self.empl_form.addRow(ob[0] + ": ", self.employee_input[-1])
             if ob[2] == "duty":
                 self.employee_input.append(QComboBox())
                 self.employee_input[-1].addItem('Frontend'); self.employee_input[-1].addItem('Backend'); self.employee_input[-1].addItem('DevOps')
@@ -1175,6 +1180,7 @@ class AddDataWindow(QDialog):
                 self.task_input[-1].addItem('Можно проверять')
                 self.task_input[-1].addItem('Завершена');
                 self.task_form.addRow(ob[0] + ": ", self.task_input[-1])
+
             if ob[2] == "ARRAY":
                 self.task_input.append(QLineEdit())
                 self.task_input[-1].setMaxLength(300)
@@ -1217,6 +1223,11 @@ class AddDataWindow(QDialog):
                 self.project_input[-1].setPlaceholderText("Text")
                 self.project_form.addRow(ob[0] + ": ", self.project_input[-1])
             if ob[2] == "integer":
+                self.project_input.append(QSpinBox())
+                self.project_input[-1].setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.project_input[-1].setRange(1, 2147483647)
+                self.project_form.addRow(ob[0] + ": ", self.project_input[-1])
+            if ob[2] == "bintree":
                 self.project_input.append(QSpinBox())
                 self.project_input[-1].setButtonSymbols(QAbstractSpinBox.NoButtons)
                 self.project_input[-1].setRange(1, 2147483647)

@@ -36,11 +36,16 @@ type Drop interface {
 	Drop() error
 }
 
+type BinTree interface {
+	Add(kStr, vStr string) (int, error)
+}
+
 type Service struct {
 	Employee
 	Project
 	Task
 	Drop
+	BinTree
 }
 
 func NewService(repository *database.Repository, envConf *config.Config) *Service {
@@ -49,5 +54,6 @@ func NewService(repository *database.Repository, envConf *config.Config) *Servic
 		Project:  &ProjectService{repository: repository.DatabaseRepository.Project},
 		Task:     &TaskService{repository: repository.DatabaseRepository.Task},
 		Drop:     &DropService{repository: repository.DatabaseRepository.Drop},
+		BinTree:  &BinTreeService{repository: repository.DatabaseRepository.BinTree},
 	}
 }
