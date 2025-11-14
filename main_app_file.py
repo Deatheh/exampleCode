@@ -18,7 +18,7 @@ faulthandler.enable()
 from PySide6.QtCore import QDate, Qt, QAbstractTableModel, QModelIndex
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QGroupBox, QFormLayout, QMessageBox, \
     QLineEdit, QGridLayout, QTabWidget, QComboBox, QScrollArea, QDialog, QSplitter, QTextEdit, QHeaderView, QLabel, QCheckBox, QDateEdit, QSpinBox, \
-    QTableView, QAbstractSpinBox, QHBoxLayout
+    QTableView, QAbstractSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 # ===== SQLAlchemy =====
 
@@ -43,14 +43,21 @@ def get_pid_by_port(port):
 class PgConfig:
     host: str = "localhost"
     port: int = 5432
-    dbname: str = "outsource"
+    dbname: str = "outsourse"
     user: str = "postgres"
     password: str = "root"
     sslmode: str = "prefer"
     connect_timeout: int = 5
 
+query = ""
 
+def SaveQuery(q):
+    global query
+    query = q
 
+def GetQuery():
+    global query
+    return query
 
 
 # -------------------------------
@@ -1674,6 +1681,431 @@ class JoinWidget(QWidget):
         return ""
 
 
+class CaseWidget(QWidget):
+    def __init__(self, columns_name):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.column_name = QComboBox()
+        self.column_name.addItems(columns_name)
+        self.operator = QComboBox()
+        self.operator.addItems(["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.expression_result = QLineEdit()
+        self.result = QLineEdit()
+
+        layout.addWidget(QLabel("WHEN "))
+        layout.addWidget(self.column_name)
+        layout.addWidget(self.operator)
+        layout.addWidget(self.expression_result)
+        layout.addWidget(QLabel("THEN "))
+        layout.addWidget(self.result)
+
+    def get_case_expression(self):
+        if (not self.column_name.currentText().strip() or
+                not self.expression_result.text().strip() or
+                not self.result.text().strip()):
+            return ""
+        column = self.column_name.currentText().strip()
+        operator = self.operator.currentText().strip()
+        expr_value = self.expression_result.text().strip()
+        result_value = self.result.text().strip()
+        if operator in ["LIKE", "NOT LIKE", "SIMILAR TO", "~", "~*", "!~", "!~*"]:
+            expr_value = f"'{expr_value}'"
+        return f"WHEN {column} {operator} {expr_value} THEN '{result_value}'"
+
+
+
+class SelectDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Просмотр данных - Employee Database")
+        self.setModal(True)
+        self.setGeometry(100, 100, 600, 900)
+        self.column_widgets = {}
+        self.join_widgets = []
+        self.case_widgets = []
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        self.columns = []
+        self.columns_name = []
+        self.employee_col_full = requests.get('http://localhost:3000/employee/columns').json()
+        for col in self.employee_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("employee." + col[0])
+        self.project_col_full = requests.get('http://localhost:3000/project/columns').json()
+        for col in self.project_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("project." + col[0])
+        self.task_col_full = requests.get('http://localhost:3000/task/columns').json()
+        for col in self.task_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("task." + col[0])
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        left_panel = self.create_query_builder()
+        splitter.addWidget(left_panel)
+
+        layout.addWidget(splitter)
+
+    def create_query_builder(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        table_group = QGroupBox("FROM - Выбор таблицы")
+        table_layout = QHBoxLayout(table_group)
+
+        self.main_table = QComboBox()
+        self.main_table.addItems(["employee", "task", "project"])
+        self.main_table.setCurrentText("employee")
+
+        table_layout.addWidget(QLabel("Основная таблица:"))
+        table_layout.addWidget(self.main_table)
+        table_layout.addStretch()
+
+        join_group = QGroupBox("JOIN - Объединение таблиц")
+        join_layout = QVBoxLayout(join_group)
+
+        self.joins_container = QVBoxLayout()
+
+        self.add_join_btn = QPushButton("+ Добавить JOIN")
+        self.add_join_btn.clicked.connect(self.add_join_widget)
+
+        join_layout.addLayout(self.joins_container)
+        join_layout.addWidget(self.add_join_btn)
+
+        case_group = QGroupBox("CASE - Объединение таблиц")
+        case_layout = QVBoxLayout(case_group)
+
+        self.cases_container = QVBoxLayout()
+
+        self.add_case_btn = QPushButton("+ Добавить WHEN ... THEN")
+        self.add_case_btn.clicked.connect(self.add_case_widget)
+
+        self.case_as_name = QLineEdit()
+        self.case_as_name.setMaxLength(100)
+        self.case_else = QLineEdit()
+        self.case_else.setMaxLength(100)
+
+        self.case_desc_form = QFormLayout()
+        self.case_desc_form.addRow("AS", self.case_as_name)
+        self.case_desc_form.addRow("ELSE", self.case_else)
+
+        case_layout.addLayout(self.case_desc_form)
+        case_layout.addLayout(self.cases_container)
+
+        case_layout.addWidget(self.add_case_btn)
+
+        select_group = QGroupBox("SELECT - Выбор столбцов и функции")
+        select_layout = QVBoxLayout(select_group)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)  # Ограничиваем высоту и включаем скролл
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(scroll_content)
+
+        columns_info = []
+
+        for i in range(len(self.columns)):
+            columns_info.append((self.columns_name[i], self.columns_name[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.scroll_layout.addStretch()
+
+        scroll_area.setWidget(scroll_content)
+        select_layout.addWidget(scroll_area)
+
+        where_group = QGroupBox("WHERE - Фильтрация")
+        where_layout = QVBoxLayout(where_group)
+        where_input_layout = QHBoxLayout()
+        self.where_field = QComboBox()
+        self.where_field.addItems(self.columns_name)
+        self.where_operator = QComboBox()
+        self.where_operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.where_value = QLineEdit()
+        self.where_input_data = QComboBox()
+        self.where_input_data.addItems(["Поле Ввода", "SQL подзапрос"])
+        self.where_value_label = QLabel("Значение:")
+        self.where_value_select = QPushButton("Задать")
+        self.where_selector = QComboBox()
+        self.where_selector.addItems(["", "ANY", "ALL", "EXIST"])
+        self.where_value_select.setVisible(False)
+        self.where_selector.setVisible(False)
+        self.where_value.setPlaceholderText("Значение для фильтра")
+        where_input_layout.addWidget(QLabel("Поле:"))
+        where_input_layout.addWidget(self.where_field)
+        where_input_layout.addWidget(QLabel("Оператор:"))
+        where_input_layout.addWidget(self.where_operator)
+        where_input_layout.addWidget(QLabel("Ввод данных:"))
+        where_input_layout.addWidget(self.where_input_data)
+        where_input_layout.addWidget(self.where_value_label)
+        where_input_layout.addWidget(self.where_value)
+        where_input_layout.addWidget(self.where_selector)
+        where_input_layout.addWidget(self.where_value_select)
+        where_layout.addLayout(where_input_layout)
+
+        self.where_value_select.clicked.connect(self.on_select_where)
+        # self.where_operator.currentTextChanged.connect(self.on_operator_changed)
+        self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
+
+        order_group = QGroupBox("ORDER BY - Сортировка")
+        order_layout = QVBoxLayout(order_group)
+        order_input_layout = QHBoxLayout()
+        self.order_field = QComboBox()
+        self.order_field.addItems([""] + self.columns_name)
+        self.order_direction = QComboBox()
+        self.order_direction.addItems(["ASC", "DESC"])
+
+        order_input_layout.addWidget(QLabel("Сортировать по:"))
+        order_input_layout.addWidget(self.order_field)
+        order_input_layout.addWidget(QLabel("Направление:"))
+        order_input_layout.addWidget(self.order_direction)
+        order_layout.addLayout(order_input_layout)
+
+        group_group = QGroupBox("GROUP BY - Группировка")
+        group_layout = QVBoxLayout(group_group)
+        group_input_layout = QHBoxLayout()
+        self.group_field = QComboBox()
+        self.group_field.addItems([""] + self.columns_name)
+        self.aggregate_function = QComboBox()
+        aggArr = ["", "COUNT(*)"]
+        for name in self.columns_name:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+        group_input_layout.addWidget(QLabel("Группировать по:"))
+        group_input_layout.addWidget(self.group_field)
+        group_input_layout.addWidget(QLabel("Агрегатная функция:"))
+        group_input_layout.addWidget(self.aggregate_function)
+        group_layout.addLayout(group_input_layout)
+
+        having_group = QGroupBox("HAVING - Фильтрация групп")
+        having_layout = QVBoxLayout(having_group)
+        having_input_layout = QHBoxLayout()
+        self.having_condition = QLineEdit()
+        self.having_condition.setPlaceholderText("Например: COUNT(*) > 1 OR AVG(salary) > 50000")
+
+        having_input_layout.addWidget(QLabel("Условие:"))
+        having_input_layout.addWidget(self.having_condition)
+        having_layout.addLayout(having_input_layout)
+        self.execute_btn = QPushButton("Задать WHERE SELECT условие")
+        self.execute_btn.clicked.connect(self.execute_query)
+
+        self.sql_preview = QTextEdit()
+        self.sql_preview.setPlaceholderText("Здесь будет отображаться сгенерированный SQL запрос...")
+        self.sql_preview.setMaximumHeight(100)
+
+        layout.addWidget(table_group)
+        layout.addWidget(join_group)
+        layout.addWidget(case_group)
+        layout.addWidget(select_group)
+        layout.addWidget(where_group)
+        layout.addWidget(order_group)
+        layout.addWidget(group_group)
+        layout.addWidget(having_group)
+        layout.addWidget(self.execute_btn)
+        layout.addWidget(self.sql_preview)
+
+        return widget
+
+    def on_select_where(self):
+        pass
+        dlg = SelectDialog(self)
+        dlg.exec()
+
+    def on_operator_changed(self, function_name):
+        if function_name == "Поле Ввода":
+            self.where_value_label.setText("Значение:")
+            self.where_value_select.setVisible(False)
+            self.where_selector.setVisible(False)
+            self.where_value.setVisible(True)
+        elif function_name == "SQL подзапрос":
+            self.where_value_label.setText("Запрос и селектор:")
+            self.where_value.setVisible(False)
+            self.where_selector.setVisible(True)
+            self.where_value_select.setVisible(True)
+
+    def add_join_widget(self):
+        join_widget = JoinWidget()
+        self.joins_container.addWidget(join_widget)
+        self.join_widgets.append(join_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_join_widget(join_widget, remove_btn))
+
+        join_container = QHBoxLayout()
+        join_container.addWidget(join_widget)
+        join_container.addWidget(remove_btn)
+
+        self.joins_container.insertLayout(self.joins_container.count() - 1, join_container)
+
+    def remove_join_widget(self, join_widget, remove_btn):
+        for i in range(self.joins_container.count()):
+            item = self.joins_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(join_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.joins_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.join_widgets.remove(join_widget)
+
+    def add_case_widget(self):
+        case_widget = CaseWidget(self.columns_name)
+        self.cases_container.addWidget(case_widget)
+        self.case_widgets.append(case_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_case_widget(case_widget, remove_btn))
+
+        case_container = QHBoxLayout()
+        case_container.addWidget(case_widget)
+        case_container.addWidget(remove_btn)
+
+        self.cases_container.insertLayout(self.cases_container.count() - 1, case_container)
+
+    def remove_case_widget(self, case_widget, remove_btn):
+        for i in range(self.cases_container.count()):
+            item = self.cases_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(case_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.cases_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.case_widgets.remove(case_widget)
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+
+        return widget
+
+    def get_selected_columns(self):
+        selected_columns = []
+        for column_widget in self.column_widgets.values():
+            expression = column_widget.get_column_expression()
+            if expression:
+                selected_columns.append(expression)
+        return selected_columns
+
+    def get_join_expressions(self):
+        joins = []
+        for join_widget in self.join_widgets:
+            join_expr = join_widget.get_join_expression()
+            if join_expr:
+                joins.append(join_expr)
+        return joins
+
+    def get_case_expressions(self):
+        cases = []
+        for case_widget in self.case_widgets:
+            case_expr = case_widget.get_case_expression()
+            if case_expr:
+                cases.append(case_expr)
+        return cases
+
+    def build_sql_query(self):
+        # SELECT
+        selected_columns = self.get_selected_columns()
+
+        if not selected_columns:
+            selected_columns = ["*"]
+
+        select_clause = "SELECT " + ", ".join(selected_columns)
+
+        from_clause = f"FROM {self.main_table.currentText()}"
+
+        join_clauses = self.get_join_expressions()
+
+        case_clauses = ""
+        if self.get_case_expressions() != []:
+            case_clauses = f", CASE "
+            for i in self.get_case_expressions():
+                case_clauses += i + ", "
+            else:
+                case_clauses = case_clauses[:len(case_clauses) - 2]
+
+            if self.case_else.text() != "":
+                case_clauses += f" ELSE {self.case_else.text()} "
+            case_clauses += " END "
+            if self.case_as_name.text() != "":
+                case_clauses += f"AS {self.case_as_name.text()} "
+
+        where_clause = ""
+        where_value = self.where_value.text().strip()
+        if where_value:
+            field = self.where_field.currentText()
+            operator = self.where_operator.currentText()
+            where_clause = f"WHERE {field} {operator} '{where_value}'"
+        group_clause = ""
+        group_field = self.group_field.currentText()
+        aggregate = self.aggregate_function.currentText()
+
+        if group_field:
+            group_clause = f"GROUP BY {group_field}"
+            if aggregate:
+                # Для агрегатных функций используем обычные имена столбцов
+                select_clause = f"SELECT {group_field}, {aggregate}"
+
+        having_clause = ""
+        having_condition = self.having_condition.text().strip()
+        if having_condition and group_clause:
+            having_clause = f"HAVING {having_condition}"
+
+        order_clause = ""
+        order_field = self.order_field.currentText()
+        order_dir = self.order_direction.currentText()
+        if order_field:
+            order_clause = f"ORDER BY {order_field} {order_dir}"
+
+        query_parts = [select_clause + case_clauses, from_clause] + join_clauses + [where_clause, group_clause,
+                                                                                    having_clause,
+                                                                                    order_clause]
+        full_query = " ".join(part for part in query_parts if part)
+
+        return full_query
+
+    def execute_query(self):
+        query = self.build_sql_query()
+        SaveQuery(query)
+        self.close()
+
+
+
 class DataViewerDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1682,6 +2114,7 @@ class DataViewerDialog(QDialog):
         self.setGeometry(100, 100, 1400, 900)
         self.column_widgets = {}
         self.join_widgets = []
+        self.case_widgets = []
         self.init_ui()
 
     def init_ui(self):
@@ -1728,6 +2161,8 @@ class DataViewerDialog(QDialog):
         table_layout.addWidget(self.main_table)
         table_layout.addStretch()
 
+
+
         join_group = QGroupBox("JOIN - Объединение таблиц")
         join_layout = QVBoxLayout(join_group)
 
@@ -1738,6 +2173,28 @@ class DataViewerDialog(QDialog):
 
         join_layout.addLayout(self.joins_container)
         join_layout.addWidget(self.add_join_btn)
+
+        case_group = QGroupBox("CASE - Объединение таблиц")
+        case_layout = QVBoxLayout(case_group)
+
+        self.cases_container = QVBoxLayout()
+
+        self.add_case_btn = QPushButton("+ Добавить WHEN ... THEN")
+        self.add_case_btn.clicked.connect(self.add_case_widget)
+
+        self.case_as_name = QLineEdit()
+        self.case_as_name.setMaxLength(100)
+        self.case_else = QLineEdit()
+        self.case_else.setMaxLength(100)
+
+        self.case_desc_form = QFormLayout()
+        self.case_desc_form.addRow("AS", self.case_as_name)
+        self.case_desc_form.addRow("ELSE", self.case_else)
+
+        case_layout.addLayout(self.case_desc_form)
+        case_layout.addLayout(self.cases_container)
+
+        case_layout.addWidget(self.add_case_btn)
 
         select_group = QGroupBox("SELECT - Выбор столбцов и функции")
         select_layout = QVBoxLayout(select_group)
@@ -1752,11 +2209,11 @@ class DataViewerDialog(QDialog):
         self.scroll_layout = QVBoxLayout(scroll_content)
 
 
-
         columns_info = []
 
         for i in range(len(self.columns)):
             columns_info.append((self.columns_name[i], self.columns_name[i]))
+
 
         for column_name, display_name in columns_info:
             column_widget = ColumnFunctionWidget(column_name, display_name)
@@ -1774,16 +2231,33 @@ class DataViewerDialog(QDialog):
         self.where_field = QComboBox()
         self.where_field.addItems(self.columns_name)
         self.where_operator = QComboBox()
-        self.where_operator.addItems(["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*"])
+        self.where_operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
         self.where_value = QLineEdit()
+        self.where_input_data = QComboBox()
+        self.where_input_data.addItems(["Поле Ввода", "SQL подзапрос"])
+        self.where_value_label = QLabel("Значение:")
+        self.where_value_select = QPushButton("Задать")
+        self.where_selector = QComboBox()
+        self.where_selector.addItems(["", "ANY", "ALL", "EXIST"])
+        self.where_value_select.setVisible(False)
+        self.where_selector.setVisible(False)
         self.where_value.setPlaceholderText("Значение для фильтра")
         where_input_layout.addWidget(QLabel("Поле:"))
         where_input_layout.addWidget(self.where_field)
         where_input_layout.addWidget(QLabel("Оператор:"))
         where_input_layout.addWidget(self.where_operator)
-        where_input_layout.addWidget(QLabel("Значение:"))
+        where_input_layout.addWidget(QLabel("Ввод данных:"))
+        where_input_layout.addWidget(self.where_input_data)
+        where_input_layout.addWidget(self.where_value_label)
         where_input_layout.addWidget(self.where_value)
+        where_input_layout.addWidget(self.where_selector)
+        where_input_layout.addWidget(self.where_value_select)
         where_layout.addLayout(where_input_layout)
+
+        self.where_value_select.clicked.connect(self.on_select_where)
+        # self.where_operator.currentTextChanged.connect(self.on_operator_changed)
+        self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
 
         order_group = QGroupBox("ORDER BY - Сортировка")
         order_layout = QVBoxLayout(order_group)
@@ -1837,6 +2311,7 @@ class DataViewerDialog(QDialog):
 
         layout.addWidget(table_group)
         layout.addWidget(join_group)
+        layout.addWidget(case_group)
         layout.addWidget(select_group)
         layout.addWidget(where_group)
         layout.addWidget(order_group)
@@ -1846,6 +2321,23 @@ class DataViewerDialog(QDialog):
         layout.addWidget(self.sql_preview)
 
         return widget
+
+    def on_select_where(self):
+        pass
+        dlg = SelectDialog(self)
+        dlg.exec()
+
+    def on_operator_changed(self, function_name):
+        if function_name == "Поле Ввода":
+            self.where_value_label.setText("Значение:")
+            self.where_value_select.setVisible(False)
+            self.where_selector.setVisible(False)
+            self.where_value.setVisible(True)
+        elif function_name == "SQL подзапрос":
+            self.where_value_label.setText("Запрос и селектор:")
+            self.where_value.setVisible(False)
+            self.where_selector.setVisible(True)
+            self.where_value_select.setVisible(True)
 
     def add_join_widget(self):
         join_widget = JoinWidget()
@@ -1877,6 +2369,36 @@ class DataViewerDialog(QDialog):
 
         self.join_widgets.remove(join_widget)
 
+    def add_case_widget(self):
+        case_widget = CaseWidget(self.columns_name)
+        self.cases_container.addWidget(case_widget)
+        self.case_widgets.append(case_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_case_widget(case_widget, remove_btn))
+
+        case_container = QHBoxLayout()
+        case_container.addWidget(case_widget)
+        case_container.addWidget(remove_btn)
+
+        self.cases_container.insertLayout(self.cases_container.count() - 1, case_container)
+
+    def remove_case_widget(self, case_widget, remove_btn):
+        for i in range(self.cases_container.count()):
+            item = self.cases_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(case_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.cases_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.case_widgets.remove(case_widget)
+
     def create_results_panel(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -1906,6 +2428,14 @@ class DataViewerDialog(QDialog):
                 joins.append(join_expr)
         return joins
 
+    def get_case_expressions(self):
+        cases = []
+        for case_widget in self.case_widgets:
+            case_expr = case_widget.get_case_expression()
+            if case_expr:
+                cases.append(case_expr)
+        return cases
+
     def build_sql_query(self):
         # SELECT
         selected_columns = self.get_selected_columns()
@@ -1919,12 +2449,36 @@ class DataViewerDialog(QDialog):
 
         join_clauses = self.get_join_expressions()
 
+        case_clauses = ""
+        if self.get_case_expressions() != []:
+            case_clauses = f", CASE "
+            for i in self.get_case_expressions():
+                case_clauses += i + ", "
+            else:
+                case_clauses = case_clauses[:len(case_clauses) - 2]
+
+
+            if self.case_else.text() != "":
+                case_clauses += f" ELSE {self.case_else.text()} "
+            case_clauses += " END "
+            if self.case_as_name.text() != "":
+                case_clauses += f"AS {self.case_as_name.text()} "
+
         where_clause = ""
         where_value = self.where_value.text().strip()
-        if where_value:
+        where_select = self.where_input_data.currentText()
+        if where_select == "Поле Ввода":
+            if where_value:
+                field = self.where_field.currentText()
+                operator = self.where_operator.currentText()
+                where_clause = f"WHERE {field} {operator} '{where_value}'"
+        else:
+            q = GetQuery()
             field = self.where_field.currentText()
             operator = self.where_operator.currentText()
-            where_clause = f"WHERE {field} {operator} '{where_value}'"
+            sel_oper = self.where_selector.currentText()
+            #Доделать any и т.п
+            where_clause = f"WHERE {field} {operator} {sel_oper}({q})"
         group_clause = ""
         group_field = self.group_field.currentText()
         aggregate = self.aggregate_function.currentText()
@@ -1946,7 +2500,7 @@ class DataViewerDialog(QDialog):
         if order_field:
             order_clause = f"ORDER BY {order_field} {order_dir}"
 
-        query_parts = [select_clause, from_clause] + join_clauses + [where_clause, group_clause, having_clause,
+        query_parts = [select_clause + case_clauses, from_clause] + join_clauses + [where_clause, group_clause, having_clause,
                                                                      order_clause]
         full_query = " ".join(part for part in query_parts if part)
 
@@ -1968,9 +2522,11 @@ class DataViewerDialog(QDialog):
                 for item in col.values():
                     info.append(item)
                 demo_data.append(info)
+            print(demo_data)
 
+            processed_data = demo_data
 
-            processed_data = []
+            '''processed_data = []
             for row in demo_data:
                 processed_row = []
                 k = 0
@@ -1996,14 +2552,600 @@ class DataViewerDialog(QDialog):
                             processed_row.append(original_value)
 
                 if processed_row:
-                    processed_data.append(processed_row)
+                    processed_data.append(processed_row)'''
 
             headers = list(self.json_data[0].keys())
-
+            print(processed_data, headers)
             self.model.update_data(processed_data, headers)
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+class FieldWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.field_name = QLineEdit()
+        self.field_name.setPlaceholderText('name')
+        self.field_name.setMaxLength(300)
+
+        self.data_type = QComboBox()
+        my_attribute = self.getTypes()
+        self.data_type.addItems(["VARCHAR", "TEXT", "DATE", "INTEGER", "BOOLEAN", "ARRAY"] + my_attribute)
+
+        layout.addWidget(QLabel("Имя поля: "))
+        layout.addWidget(self.field_name)
+        layout.addWidget(QLabel("Тип поля: "))
+        layout.addWidget(self.data_type)
+
+    def get_field_expression(self):
+        pass
+
+    def getTypes(self):
+        try:
+            self.json_data = requests.get('http://localhost:3000/user_type').json()
+            print(self.json_data)
+            if (type(self.json_data) == str):
+                return
+            demo_data = []
+            if self.json_data is None:
+                return
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            processed_data = demo_data
+
+            for i in range(len(processed_data)):
+                processed_data[i] = processed_data[i][1].replace("'", '"')
+
+            return processed_data
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+
+
+class AddTypeDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.field_widgets = []
+
+        self.setWindowTitle("Добавление пользовательского типа")
+        self.setGeometry(300, 300, 400, 400)
+
+        self.typeName = QLineEdit()
+        self.typeName.setPlaceholderText('name')
+        self.typeName.setMaxLength(300)
+
+        self.typeType = QComboBox()
+        self.typeType.addItems(["ENUM", "Составной тип"])
+        self.typeType.currentTextChanged.connect(self.on_type_changed)
+
+        self.enumList = QLineEdit()
+        self.enumList.setPlaceholderText('mon, tue, wed')
+        self.enumList.setVisible(True)
+
+        self.compoAdd = QPushButton('Добавить поле')
+        self.compoAdd.clicked.connect(self.add_field_widget)
+        self.compoAdd.setVisible(False)
+
+        self.addForm = QFormLayout()
+        self.addForm.addRow('Список значений', self.enumList)
+        self.addForm.addWidget(self.compoAdd)
+
+
+        self.typeForm = QFormLayout()
+        self.typeForm.addRow('Название типа', self.typeName)
+        self.typeForm.addRow('Подвид типа', self.typeType)
+
+        self.data_box = QGroupBox()
+        self.data_box.setLayout(self.addForm)
+
+        self.addButton = QPushButton('Создать тип')
+        self.addButton.clicked.connect(self.createSQLquery)
+
+        self.layout = QVBoxLayout()
+        self.layout.addLayout(self.typeForm)
+        self.layout.addWidget(self.data_box)
+        self.layout.addWidget(self.addButton)
+        self.layout.addStretch()
+        self.setLayout(self.layout)
+
+    def on_type_changed(self, type):
+        if type == "ENUM":
+            self.compoAdd.setVisible(False)
+            for item in self.field_widgets:
+                self.remove_field_widget(item[0], item[1])
+            self.enumList = QLineEdit()
+            self.enumList.setPlaceholderText('mon, tue, wed')
+            self.addForm.addRow('Список значений', self.enumList)
+        elif type == "Составной тип":
+            self.addForm.removeRow(self.enumList)
+            self.compoAdd.setVisible(True)
+
+    def add_field_widget(self):
+        field_widget = FieldWidget()
+        self.addForm.addWidget(field_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_field_widget(field_widget, remove_btn))
+
+        self.field_widgets.append([field_widget, remove_btn])
+
+        field_container = QHBoxLayout()
+        field_container.addWidget(field_widget)
+        field_container.addWidget(remove_btn)
+
+        self.addForm.insertRow(self.addForm.count() - 1, field_container)
+
+    def remove_field_widget(self, field_widget, remove_btn):
+        for i in range(self.addForm.count()):
+            item = self.addForm.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(field_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.addForm.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.field_widgets.remove([field_widget, remove_btn])
+
+    def employee_remove_constraint_col(self):
+        col = self.employeeRenameCol.currentText()
+
+
+    def createSQLquery(self):
+        query = f"CREATE TYPE {self.typeName.text().strip()} AS"
+        if self.typeType.currentText() == "ENUM":
+            query += " ENUM("
+            arr_str = [f"'{i}'" for i in self.enumList.text().split(", ")]
+            for i in arr_str:
+                query += f"{i}, "
+            query = query[:-2] + ");"
+        else:
+            query += " ("
+            for i in self.field_widgets:
+                query += f"{i[0].field_name.text().strip()} {i[0].data_type.currentText().strip()}, "
+            query = query[:-2] + ");"
+        print(query)
+        json_string = '{"alter_string": "' + query + '"}'
+        json_data = json.loads(json_string)
+        r = requests.post('http://localhost:3000/user_type', json=json_data)
+        if r.status_code != 200:
+            makeLog("Ошибка при добавлении!")
+        else:
+            makeLog("Изменения добавлены!")
+
+
+
+class DropTypeDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Удалить пользовательский тип')
+        self.setGeometry(300, 300, 300, 100)
+
+        self.types = self.getTypes()
+
+        self.dropBox = QGroupBox()
+
+        self.dropForm = QFormLayout()
+
+        self.dropUDT = QComboBox()
+        for col in self.types:
+            self.dropUDT.addItem(col)
+        self.dropForm.addRow("Тип: ", self.dropUDT)
+
+        self.dropButton = QPushButton('Расстрелять тип💥')
+        self.dropButton.clicked.connect(self.dropType)
+        self.dropForm.addWidget(self.dropButton)
+
+        self.dropBox.setLayout(self.dropForm)
+        layout = QVBoxLayout()
+        layout.addWidget(self.dropBox)
+        self.setLayout(layout)
+
+    def dropType(self):
+        query = f"DROP TYPE {self.dropUDT.currentText()}"
+        json_string = '{"alter_string": "' + query + '"}'
+        json_data = json.loads(json_string)
+        r = requests.post('http://localhost:3000/user_type', json=json_data)
+        if r.status_code != 200:
+            makeLog("Ошибка при удалении!")
+        else:
+            makeLog("Изменения добавлены!")
+
+    def getTypes(self):
+        try:
+            self.json_data = requests.get('http://localhost:3000/user_type').json()
+            print(self.json_data)
+            if (type(self.json_data) == str):
+                return
+            demo_data = []
+            if self.json_data is None:
+                return
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            processed_data = demo_data
+
+            for i in range(len(processed_data)):
+                processed_data[i] = processed_data[i][1]
+
+            return processed_data
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+class ShowTypesDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Посмотреть пользовательские типы')
+        self.setGeometry(300, 300, 400, 300)
+
+        layout = QHBoxLayout(self)
+
+        panel = self.create_results_panel()
+        layout.addWidget(panel)
+        self.execute_query()
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+
+        return widget
+
+    def execute_query(self):
+        try:
+            self.json_data = requests.get('http://localhost:3000/user_type').json()
+            print(self.json_data)
+            if (type(self.json_data) == str):
+                return
+            demo_data = []
+            if self.json_data is None:
+                return
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+            print(demo_data)
+
+            processed_data = demo_data
+
+            for i in range(len(processed_data)):
+                if processed_data[i][0] == "E":
+                    processed_data[i][0] = "Enum"
+                else:
+                    processed_data[i][0] = "Composite"
+
+            headers = list(self.json_data[0].keys())
+            print(processed_data, headers)
+            self.model.update_data(processed_data, headers)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+
+
+
+class AlterTypesDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+
+
+        self.setWindowTitle("Редактирование пользовательских типов")
+        self.setGeometry(300, 300, 400, 220)
+
+        self.types = self.getTypes()
+
+        self.tab = QTabWidget()
+
+        # ----------------------
+
+        self.renameForm = QFormLayout()
+
+        self.renameUDT = QComboBox()
+
+        for col in self.types:
+            self.renameUDT.addItem(col)
+        self.renameForm.addRow("Тип: ", self.renameUDT)
+
+        self.typeName = QLineEdit()
+        self.typeName.setMaxLength(300)
+        self.typeName.setPlaceholderText("name")
+
+        self.renameForm.addRow("Переименовать в: ", self.typeName)
+
+        self.renameUDT_button = QPushButton('Переименовать тип')
+        self.renameUDT_button.clicked.connect(self.renameType)
+
+        self.rename_layout = QVBoxLayout()
+        self.rename_layout.addLayout(self.renameForm)
+        self.rename_layout.addWidget(self.renameUDT_button)
+        self.rename_layout.addStretch()
+
+        self.rename_box = QGroupBox()
+        self.rename_box.setLayout(self.rename_layout)
+
+        self.tab.insertTab(0, self.rename_box, 'Переименовать тип')
+
+        # ----------------------
+
+        self.add_form = QFormLayout()
+
+        self.addUDT = QComboBox()
+
+        for col in self.types:
+            self.addUDT.addItem(col)
+        self.add_form.addRow("Тип: ", self.addUDT)
+
+        self.addType = QComboBox()
+        my_attribute = self.getTypes()
+        self.addType.addItems(["VARCHAR", "TEXT", "DATE", "INTEGER", "BOOLEAN", "ARRAY"] + my_attribute)
+
+        self.add_form.addRow("Тип нового аттрибута: ", self.addType)
+
+        self.add_name = QLineEdit()
+        self.add_form.addRow("Название  аттрибута: ", self.add_name)
+
+        self.add_button = QPushButton('Добавить аттрибут')
+        self.add_button.clicked.connect(self.AddProperty)
+
+        self.add_layout = QVBoxLayout()
+        self.add_layout.addLayout(self.add_form)
+        self.add_layout.addWidget(self.add_button)
+        self.add_layout.addStretch()
+
+        self.add_box = QGroupBox()
+        self.add_box.setLayout(self.add_layout)
+
+        self.tab.insertTab(1, self.add_box, 'Добавить аттрибут')
+
+        # ----------------------
+
+        self.drop_form = QFormLayout()
+
+        self.dropUDT = QComboBox()
+
+
+        for col in self.types:
+            self.dropUDT.addItem(col)
+        self.dropUDT.currentTextChanged.connect(self.ChangeAttribute)
+        self.drop_form.addRow("Тип: ", self.dropUDT)
+
+        self.dropCol = QComboBox()
+        self.ChangeAttribute()
+        self.drop_form.addRow("Удаляемый аттрибут: ", self.dropCol)
+
+        self.drop_button = QPushButton('Изменить колонку')
+        self.drop_button.clicked.connect(self.DropAttribute)
+
+        self.drop_layout = QVBoxLayout()
+        self.drop_layout.addLayout(self.drop_form)
+        self.drop_layout.addWidget(self.drop_button)
+        self.drop_layout.addStretch()
+
+        self.drop_box = QGroupBox()
+        self.drop_box.setLayout(self.drop_layout)
+
+        self.tab.insertTab(2, self.drop_box, 'Удалить аттрибут')
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.tab)
+        self.layout.addStretch()
+        self.setLayout(self.layout)
+
+    def getTypes(self):
+        try:
+            self.json_data = requests.get('http://localhost:3000/user_type').json()
+            if (type(self.json_data) == str):
+                return
+            demo_data = []
+            if self.json_data is None:
+                return
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            processed_data = demo_data
+
+            for i in range(len(processed_data)):
+                processed_data[i] = processed_data[i][1]
+
+            return processed_data
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+    def renameType(self):
+        query = f"ALTER TYPE {self.renameUDT.currentText()} RENAME TO {self.typeName.text()}"
+        print(query)
+        json_string = '{"alter_string": "' + query + '"}'
+        json_data = json.loads(json_string)
+        r = requests.post('http://localhost:3000/user_type', json=json_data)
+        if r.status_code != 200:
+            makeLog("Ошибка при переименовании!")
+        else:
+            makeLog("Изменения добавлены!")
+
+    def AddProperty(self):
+        query = f"ALTER TYPE {self.addUDT.currentText()} ADD ATTRIBUTE {self.add_name.text()} {self.addType.currentText()}"
+        json_string = '{"alter_string": "' + query + '"}'
+        json_data = json.loads(json_string)
+        r = requests.post('http://localhost:3000/user_type', json=json_data)
+        if r.status_code != 200:
+            makeLog("Ошибка при добавлении!")
+        else:
+            makeLog("Изменения добавлены!")
+
+    def ChangeAttribute(self):
+        self.dropCol.clear()
+        data = self.GetAttribute()
+        for col in data:
+            self.dropCol.addItem(col)
+
+    def GetAttribute(self):
+        try:
+            self.json_data = requests.get('http://localhost:3000/user_type/values').json()
+            if (type(self.json_data) == str):
+                return
+            demo_data = []
+            if self.json_data is None:
+                return
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            processed_data = []
+
+            for i in demo_data:
+                if i[3] == self.dropUDT.currentText():
+                    if i[2] == 'ENUM':
+                        processed_data = [j[1:-1] for j in i[1][1:-1].split(", ")]
+                        break
+                    else:
+                        processed_data = [j[1:-1] for j in i[0][1:-1].split(", ")]
+                        break
+
+
+
+            return processed_data
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+    def DropAttribute(self):
+        self.json_data = requests.get('http://localhost:3000/user_type/values').json()
+        if (type(self.json_data) == str):
+            return
+        demo_data = []
+        if self.json_data is None:
+            return
+        for col in self.json_data:
+            info = []
+            for item in col.values():
+                info.append(item)
+            demo_data.append(info)
+
+        processed_data = []
+
+        for i in demo_data:
+            if i[3] == self.dropUDT.currentText():
+                if i[2] == 'ENUM':
+                    query = f"DROP TYPE {self.dropUDT.currentText()}"
+                    print(query)
+                    json_string = '{"alter_string": "' + query + '"}'
+                    json_data = json.loads(json_string)
+                    r = requests.post('http://localhost:3000/user_type', json=json_data)
+                    if r.status_code != 200:
+                        makeLog("Ошибка при удалении!")
+                    else:
+                        makeLog("Изменения добавлены!")
+                    query = f"CREATE TYPE {self.dropUDT.currentText()} AS"
+                    query += " ENUM("
+                    processed_data = [f"'{j[1:-1]}'" for j in i[1][1:-1].split(", ")]
+                    for i in processed_data:
+                        if i != f"'{self.dropCol.currentText()}'":
+                            query += f"{i}, "
+                    query = query[:-2] + ");"
+                    print(query)
+                    json_string = '{"alter_string": "' + query + '"}'
+                    json_data = json.loads(json_string)
+                    r = requests.post('http://localhost:3000/user_type', json=json_data)
+                    if r.status_code != 200:
+                        makeLog("Ошибка при удалении!")
+                    else:
+                        makeLog("Изменения добавлены!")
+                else:
+                    query = f"ALTER TYPE {self.dropUDT.currentText()} DROP ATTRIBUTE {self.dropCol.currentText()}"
+                    json_string = '{"alter_string": "' + query + '"}'
+                    json_data = json.loads(json_string)
+                    r = requests.post('http://localhost:3000/user_type', json=json_data)
+                    if r.status_code != 200:
+                        makeLog("Ошибка при удаление!")
+                    else:
+                        makeLog("Изменения добавлены!")
+                break
+
+
+
+class UDTDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Окно пользовательских типов")
+        self.setModal(True)
+        self.setGeometry(200, 200, 600, 220)
+        self.init_ui()
+
+    def init_ui(self):
+
+        self.show_button = QPushButton('Отобразить типы')
+        self.show_button.clicked.connect(self.showUDT)
+        self.add_button = QPushButton('Добавить тип')
+        self.add_button.clicked.connect(self.addUDT)
+        self.drop_button = QPushButton('Удалить тип')
+        self.drop_button.clicked.connect(self.dropUDT)
+        self.alter_button = QPushButton('Изменить типы')
+        self.alter_button.clicked.connect(self.alterUDT)
+
+        self.UDT_layout = QVBoxLayout()
+        self.UDT_layout.addWidget(self.show_button)
+        self.UDT_layout.addWidget(self.add_button)
+        self.UDT_layout.addWidget(self.drop_button)
+        self.UDT_layout.addWidget(self.alter_button)
+        self.UDT_layout.addStretch()
+
+        self.empl_box = QGroupBox("Пользовательские типы")
+        self.empl_box.setLayout(self.UDT_layout)  # установка макета в блок
+
+
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.empl_box)
+        self.layout.addStretch()
+
+        self.setLayout(self.layout)
+
+    def alterUDT(self):
+        dlg = AlterTypesDialog()
+        dlg.exec()
+
+    def showUDT(self):
+        dlg = ShowTypesDialog()
+        dlg.exec()
+
+    def addUDT(self):
+        dlg = AddTypeDialog()
+        dlg.exec()
+
+    def dropUDT(self):
+        dlg = DropTypeDialog()
+        dlg.exec()
+
 
 
 
@@ -2111,7 +3253,7 @@ class MainWindow(QWidget):
         # текстовые поля для блока подключения
         self.lineedit_host = QLineEdit("localhost")
         self.lineedit_port = QLineEdit("5436")
-        self.lineedit_dbname = QLineEdit("db")
+        self.lineedit_dbname = QLineEdit("outsourse")
         self.lineedit_user = QLineEdit("user")
         self.lineedit_password = QLineEdit(echoMode=QLineEdit.EchoMode.Password)
         self.lineedit_sslmode = QLineEdit("prefer")
@@ -2152,17 +3294,21 @@ class MainWindow(QWidget):
         self.button_adddata = QPushButton('Добавить данные')
         self.button_showdb = QPushButton('Вывести данные')
         self.button_alterdb = QPushButton('Изменить таблицу')
+        self.button_udtdb = QPushButton('Пользовательские типы')
         self.button_adddata.clicked.connect(self.addData)
         self.button_showdb.clicked.connect(self.showDataBase)
         self.button_alterdb.clicked.connect(self.alterTables)
+        self.button_udtdb.clicked.connect(self.userTypes)
         self.button_adddata.setDisabled(True)
         self.button_showdb.setDisabled(True)
         self.button_alterdb.setDisabled(True)
+        self.button_udtdb.setDisabled(True)
 
         self.curdb_grid_buttons = QGridLayout() # сетка-макет кнопок для работы с нынешней бд
         self.curdb_grid_buttons.addWidget(self.button_adddata, 0, 0)
         self.curdb_grid_buttons.addWidget(self.button_showdb, 0, 1)
         self.curdb_grid_buttons.addWidget(self.button_alterdb, 2, 0, 1, 2)
+        self.curdb_grid_buttons.addWidget(self.button_udtdb, 3, 0, 1, 2)
         self.w_layout.addLayout(self.curdb_grid_buttons) # добавление сетки кнопок в общий макет
 
 
@@ -2174,12 +3320,12 @@ class MainWindow(QWidget):
         try:
             port = int(self.lineedit_port.text().strip())
         except ValueError:
-            port = 5436
+            port = 5432
         return PgConfig(
             host=self.lineedit_host.text().strip() or "localhost",
             port=port,
-            dbname=self.lineedit_dbname.text().strip() or "db",
-            user=self.lineedit_user.text().strip() or "user",
+            dbname=self.lineedit_dbname.text().strip() or "outsource",
+            user=self.lineedit_user.text().strip() or "postgres",
             password=self.lineedit_password.text(),
             sslmode=self.lineedit_sslmode.text().strip() or "prefer",
         )
@@ -2210,6 +3356,7 @@ class MainWindow(QWidget):
             self.button_showdb.setDisabled(False)
             self.button_disconn.setDisabled(False)
             self.button_alterdb.setDisabled(False)
+            self.button_udtdb.setDisabled(False)
         else:
             makeLog("Ошибка запуска:")
 
@@ -2222,6 +3369,7 @@ class MainWindow(QWidget):
         self.button_showdb.setDisabled(True)
         self.button_disconn.setDisabled(True)
         self.button_alterdb.setDisabled(True)
+        self.button_udtdb.setDisabled(True)
         makeLog("Соединение закрыто.")
 
     def reset_db(self):
@@ -2241,6 +3389,10 @@ class MainWindow(QWidget):
 
     def alterTables(self):
         dlg = AlterTableWindow()
+        dlg.exec()
+
+    def userTypes(self):
+        dlg = UDTDialog()
         dlg.exec()
 
 

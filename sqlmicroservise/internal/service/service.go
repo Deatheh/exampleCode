@@ -36,8 +36,10 @@ type Drop interface {
 	Drop() error
 }
 
-type BinTree interface {
-	Add(kStr, vStr string) (int, error)
+type All interface {
+	GetAllTypes() ([]map[string]interface{}, error)
+	AddType(queru string) error
+	GetAllTypesWithValues() ([]map[string]interface{}, error)
 }
 
 type Service struct {
@@ -45,7 +47,7 @@ type Service struct {
 	Project
 	Task
 	Drop
-	BinTree
+	All
 }
 
 func NewService(repository *database.Repository, envConf *config.Config) *Service {
@@ -54,6 +56,6 @@ func NewService(repository *database.Repository, envConf *config.Config) *Servic
 		Project:  &ProjectService{repository: repository.DatabaseRepository.Project},
 		Task:     &TaskService{repository: repository.DatabaseRepository.Task},
 		Drop:     &DropService{repository: repository.DatabaseRepository.Drop},
-		BinTree:  &BinTreeService{repository: repository.DatabaseRepository.BinTree},
+		All:      &AllService{repository: repository.DatabaseRepository.All},
 	}
 }

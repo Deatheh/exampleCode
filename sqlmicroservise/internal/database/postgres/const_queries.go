@@ -47,23 +47,4 @@ const (
 			status STATUS
 		);
 	`
-
-	createBinTree = `
-		DO $$ 
-		BEGIN 
-			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status') THEN
-				CREATE TYPE BINTREE AS (ref INTEGER);
-			END IF;
-		END $$;
-		CREATE TABLE binary_tree (
-			id INT PRIMARY KEY,
-			value VARCHAR(50) NOT NULL,
-			left_child_id INT NULL,
-			right_child_id INT NULL,
-			parent_id INT NULL,
-			FOREIGN KEY (left_child_id) REFERENCES binary_tree(id),
-			FOREIGN KEY (right_child_id) REFERENCES binary_tree(id),
-			FOREIGN KEY (parent_id) REFERENCES binary_tree(id)
-		);
-	`
 )

@@ -23,8 +23,6 @@ func NewHandler(services *service.Service, envConf *config.Config) *Handler {
 	return &Handler{services: services, envConf: envConf}
 }
 
-// Функция для создания роутера, добавления к нему CORSMiddleware
-// и объявления путей для всех запросов.
 func (h *Handler) InitRoutes() *fiber.App {
 	r := fiber.New()
 	r.Get("/swagger/*", swagger.HandlerDefault)
@@ -60,9 +58,11 @@ func (h *Handler) InitRoutes() *fiber.App {
 	{
 		drop.Delete("", h.HandlerDrop)
 	}
-	binTree := r.Group("/bin_tree")
+	userType := r.Group("/user_type")
 	{
-		binTree.Post("", h.HandlerAddBinTree)
+		userType.Get("", h.HandlerGetAllUserType)
+		userType.Post("", h.HandlerAddType)
+		userType.Get("/values", h.HandlerGetAllUserTypeWithValues)
 	}
 	return r
 }
