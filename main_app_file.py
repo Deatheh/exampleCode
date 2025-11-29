@@ -1,3 +1,4 @@
+
 import sys
 import os
 import json
@@ -17,24 +18,28 @@ faulthandler.enable()
 
 from PySide6.QtCore import QDate, Qt, QAbstractTableModel, QModelIndex
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QGroupBox, QFormLayout, QMessageBox, \
-    QLineEdit, QGridLayout, QTabWidget, QComboBox, QScrollArea, QDialog, QSplitter, QTextEdit, QHeaderView, QLabel, QCheckBox, QDateEdit, QSpinBox, \
+    QLineEdit, QGridLayout, QTabWidget, QComboBox, QScrollArea, QDialog, QSplitter, QTextEdit, QHeaderView, QLabel, \
+    QCheckBox, QListWidget, QDateEdit, QSpinBox, \
     QTableView, QAbstractSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 # ===== SQLAlchemy =====
 
 from datetime import datetime
 
+
 def makeLog(str):
-    f = open('log.txt','a')
+    f = open('log.txt', 'a')
     now = datetime.now()
     f.write(f"{now}: {str}\n")
     f.close()
+
 
 def get_pid_by_port(port):
     for conn in psutil.net_connections(kind='inet'):
         if conn.laddr.port == port and conn.status == 'LISTEN':
             return conn.pid
     return None
+
 
 # -------------------------------
 # Конфигурация подключения
@@ -49,11 +54,34 @@ class PgConfig:
     sslmode: str = "prefer"
     connect_timeout: int = 5
 
+
 query = ""
+
 
 def SaveQuery(q):
     global query
     query = q
+
+CTEquery = ""
+CTEarr = []
+
+def SaveCTEQuery(q, arr):
+    global CTEquery
+    global CTEarr
+    CTEquery = q
+    CTEarr = arr
+
+def GetCTEquery():
+    global CTEquery
+    return CTEquery
+
+def GetCTEarr():
+    global CTEarr
+    return CTEarr
+
+def ClearCTEarr():
+    global CTEarr
+    CTEarr = []
 
 def GetQuery():
     global query
@@ -180,6 +208,7 @@ class RemoveConstraintColWindow(QDialog):
         else:
             makeLog("Изменения добавлены!")
 
+
 class ConstraintColWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -232,7 +261,7 @@ class ConstraintColWindow(QDialog):
 
         self.tab.insertTab(0, self.employee_box, 'Сотрудники')
 
-        #-------------------------
+        # -------------------------
 
         self.task_form = QFormLayout()
 
@@ -456,6 +485,7 @@ class ConstraintColWindow(QDialog):
             else:
                 makeLog("Изменения добавлены!")
 
+
 class TypeColWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -604,6 +634,7 @@ class TypeColWindow(QDialog):
         else:
             makeLog("Изменения добавлены!")
 
+
 class RenameColWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -612,7 +643,7 @@ class RenameColWindow(QDialog):
 
         self.tab = QTabWidget()
 
-        #----------------------
+        # ----------------------
 
         self.empl_form = QFormLayout()
 
@@ -743,6 +774,7 @@ class RenameColWindow(QDialog):
         else:
             makeLog("Изменения добавлены!")
 
+
 class RemoveColWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -774,7 +806,7 @@ class RemoveColWindow(QDialog):
 
         self.tab.insertTab(0, self.empl_box, 'Сотрудники')
 
-        #----------------------
+        # ----------------------
 
         self.task_form = QFormLayout()
 
@@ -846,7 +878,7 @@ class RemoveColWindow(QDialog):
             makeLog("Изменения добавлены!")
 
     def project_del_col(self):
-        type = self. projectDelCol.currentText()
+        type = self.projectDelCol.currentText()
         json_string = '{"alter_string": "DROP COLUMN ' + type + '"}'
         json_data = json.loads(json_string)
         r = requests.post('http://localhost:3000/project/alter', json=json_data)
@@ -854,6 +886,7 @@ class RemoveColWindow(QDialog):
             makeLog("Ошибка при добавлении!")
         else:
             makeLog("Изменения добавлены!")
+
 
 class AddColWindow(QDialog):
     def __init__(self):
@@ -863,7 +896,7 @@ class AddColWindow(QDialog):
 
         self.tab = QTabWidget()
 
-        #-------------------
+        # -------------------
         self.empl_form = QFormLayout()
 
         self.colName = QLineEdit()
@@ -925,8 +958,7 @@ class AddColWindow(QDialog):
 
         self.tab.insertTab(1, self.task_box, 'Задачи')
 
-
-        #-------------------------------
+        # -------------------------------
 
         self.project_form = QFormLayout()
 
@@ -964,7 +996,7 @@ class AddColWindow(QDialog):
         self.setLayout(self.layout)
 
     def employee_add_col(self):
-        colName =  self.colName.text().strip()
+        colName = self.colName.text().strip()
         type = self.type.currentText()
         if not colName:
             return
@@ -978,7 +1010,7 @@ class AddColWindow(QDialog):
             makeLog("Изменения добавлены!")
 
     def task_add_col(self):
-        colName =  self.taskColName.text().strip()
+        colName = self.taskColName.text().strip()
         type = self.taskType.currentText()
         if not colName:
             return
@@ -992,7 +1024,7 @@ class AddColWindow(QDialog):
             makeLog("Изменения добавлены!")
 
     def project_add_col(self):
-        colName =  self.projectColName.text().strip()
+        colName = self.projectColName.text().strip()
         type = self.projectType.currentText()
         if not colName:
             return
@@ -1005,12 +1037,12 @@ class AddColWindow(QDialog):
         else:
             makeLog("Изменения добавлены!")
 
+
 class AlterTableWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Alter Table')
         self.setGeometry(300, 300, 600, 220)
-
 
         self.add_employee_button = QPushButton('Добавить колонку')
         self.add_employee_button.clicked.connect(self.employee_add_col)
@@ -1025,9 +1057,8 @@ class AlterTableWindow(QDialog):
         self.remove_constraint_employee_button = QPushButton('Убрать ограничения')
         self.remove_constraint_employee_button.clicked.connect(self.remove_constraint_col)
 
-
         self.employee_layout = QVBoxLayout()
-        self.employee_layout.addWidget(self.add_employee_button )
+        self.employee_layout.addWidget(self.add_employee_button)
         self.employee_layout.addWidget(self.remove_employee_button)
         self.employee_layout.addWidget(self.rename_employee_button)
         self.employee_layout.addWidget(self.type_employee_button)
@@ -1037,9 +1068,6 @@ class AlterTableWindow(QDialog):
 
         self.empl_box = QGroupBox("Изменить таблицу сотрудник")
         self.empl_box.setLayout(self.employee_layout)  # установка макета в блок
-
-
-
 
         # Конец создания вкладок
 
@@ -1072,6 +1100,7 @@ class AlterTableWindow(QDialog):
     def remove_constraint_col(self):
         dlg = RemoveConstraintColWindow()
         dlg.exec()
+
 
 # -------------------------------
 # Окно Добавления данных в БД
@@ -1114,8 +1143,12 @@ class AddDataWindow(QDialog):
                 self.empl_form.addRow(ob[0] + ": ", self.employee_input[-1])
             if ob[2] == "duty":
                 self.employee_input.append(QComboBox())
-                self.employee_input[-1].addItem('Frontend'); self.employee_input[-1].addItem('Backend'); self.employee_input[-1].addItem('DevOps')
-                self.employee_input[-1].addItem('Teamlead'); self.employee_input[-1].addItem('HR'); self.employee_input[-1].addItem('PM')
+                self.employee_input[-1].addItem('Frontend');
+                self.employee_input[-1].addItem('Backend');
+                self.employee_input[-1].addItem('DevOps')
+                self.employee_input[-1].addItem('Teamlead');
+                self.employee_input[-1].addItem('HR');
+                self.employee_input[-1].addItem('PM')
                 self.employee_input[-1].addItem('CEO')
                 self.empl_form.addRow(ob[0] + ": ", self.employee_input[-1])
             if ob[2] == "status":
@@ -1140,7 +1173,7 @@ class AddDataWindow(QDialog):
                 self.employee_input[-1].setDate(QDate(2000, 1, 1))
                 self.empl_form.addRow(ob[0] + ": ", self.employee_input[-1])
 
-        self.empl_add_button = QPushButton('Добавить данные') # кнопка добавления данных
+        self.empl_add_button = QPushButton('Добавить данные')  # кнопка добавления данных
         self.empl_add_button.clicked.connect(self.add_employee)
         # Создание макета всего внутреннего содержимого блока ввода данных (сами поля данных и кнопка)
         self.empl_layout = QVBoxLayout()
@@ -1153,9 +1186,7 @@ class AddDataWindow(QDialog):
 
         self.tab.insertTab(0, self.empl_box, 'Сотрудники')
 
-
         # Данная процедура повторяется ещё два раза для создания ещё двух вкладок
-
 
         self.task_form = QFormLayout()
 
@@ -1176,8 +1207,12 @@ class AddDataWindow(QDialog):
                 self.task_form.addRow(ob[0] + ": ", self.task_input[-1])
             if ob[2] == "duty":
                 self.task_input.append(QComboBox())
-                self.task_input[-1].addItem('Frontend'); self.task_input[-1].addItem('Backend'); self.task_input[-1].addItem('DevOps')
-                self.task_input[-1].addItem('Teamlead'); self.task_input[-1].addItem('HR'); self.task_input[-1].addItem('PM')
+                self.task_input[-1].addItem('Frontend');
+                self.task_input[-1].addItem('Backend');
+                self.task_input[-1].addItem('DevOps')
+                self.task_input[-1].addItem('Teamlead');
+                self.task_input[-1].addItem('HR');
+                self.task_input[-1].addItem('PM')
                 self.task_input[-1].addItem('CEO')
                 self.task_form.addRow(ob[0] + ": ", self.task_input[-1])
             if ob[2] == "status":
@@ -1287,7 +1322,7 @@ class AddDataWindow(QDialog):
         # Конец создания вкладок
 
         self.close_button = QPushButton('Закрыть окно')
-        self.close_button.clicked.connect(self.close) # при нажатии кнопки окно будет закрываться
+        self.close_button.clicked.connect(self.close)  # при нажатии кнопки окно будет закрываться
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.tab)
@@ -1303,14 +1338,16 @@ class AddDataWindow(QDialog):
                 text = self.employee_input[i].text().strip()
                 if self.employee_col[i][1] == "NO" and not text:
                     QMessageBox.warning(self, "Ввод", f"Поле {self.employee_col[i][0]} обязательно для ввода")
-                    makeLog(f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
+                    makeLog(
+                        f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
                     return
                 json_string += '"' + self.employee_col[i][0] + '": "' + text + '", '
             if self.employee_col[i][2] == "integer":
                 num = self.employee_input[i].value()
                 if self.employee_col[i][1] == "NO" and not num:
                     QMessageBox.warning(self, "Ввод", f"Поле {self.employee_col[i][0]} обязательно для ввода")
-                    makeLog(f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
+                    makeLog(
+                        f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
                     return
                 json_string += '"' + self.employee_col[i][0] + '": ' + str(num) + ', '
             if self.employee_col[i][2] == "duty" or self.employee_col[i][2] == "status":
@@ -1325,7 +1362,8 @@ class AddDataWindow(QDialog):
                 arrStr = self.employee_input[i].text().split(", ")
                 if self.employee_col[i][1] == "NO" and not arrStr:
                     QMessageBox.warning(self, "Ввод", f"Поле {self.employee_col[i][0]} обязательно для ввода")
-                    makeLog(f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
+                    makeLog(
+                        f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
                     return
                 json_string += '"' + self.employee_col[i][0] + '": ['
                 for el in arrStr:
@@ -1336,7 +1374,8 @@ class AddDataWindow(QDialog):
                 data = self.employee_input[i].isChecked()
                 if self.employee_col[i][1] == "NO" and not data:
                     QMessageBox.warning(self, "Ввод", f"Поле {self.employee_col[i][0]} обязательно для ввода")
-                    makeLog(f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
+                    makeLog(
+                        f"Ошибка при добавления записи сотрудника. Обязательное поле {self.employee_col[i][0]} не заполнено")
                     return
                 if data:
                     json_string += '"' + self.employee_col[i][0] + '": true, '
@@ -1690,7 +1729,8 @@ class CaseWidget(QWidget):
         self.column_name = QComboBox()
         self.column_name.addItems(columns_name)
         self.operator = QComboBox()
-        self.operator.addItems(["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
         self.expression_result = QLineEdit()
         self.result = QLineEdit()
 
@@ -1713,7 +1753,6 @@ class CaseWidget(QWidget):
         if operator in ["LIKE", "NOT LIKE", "SIMILAR TO", "~", "~*", "!~", "!~*"]:
             expr_value = f"'{expr_value}'"
         return f"WHEN {column} {operator} {expr_value} THEN '{result_value}'"
-
 
 
 class SelectDialog(QDialog):
@@ -1858,7 +1897,6 @@ class SelectDialog(QDialog):
         where_layout.addLayout(where_input_layout)
 
         self.where_value_select.clicked.connect(self.on_select_where)
-        # self.where_operator.currentTextChanged.connect(self.on_operator_changed)
         self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
 
         order_group = QGroupBox("ORDER BY - Сортировка")
@@ -1878,8 +1916,14 @@ class SelectDialog(QDialog):
         group_group = QGroupBox("GROUP BY - Группировка")
         group_layout = QVBoxLayout(group_group)
         group_input_layout = QHBoxLayout()
+
+        self.group_by_type = QComboBox()
+        self.group_by_type.addItems(["", "GROUPING SETS", "ROLLUP", "CUBE"])
+        self.group_by_type.currentTextChanged.connect(self.on_group_by_changed)
+
         self.group_field = QComboBox()
         self.group_field.addItems([""] + self.columns_name)
+
         self.aggregate_function = QComboBox()
         aggArr = ["", "COUNT(*)"]
         for name in self.columns_name:
@@ -1889,11 +1933,36 @@ class SelectDialog(QDialog):
             aggArr.append("MIN(" + name + ")")
             aggArr.append("MAX(" + name + ")")
         self.aggregate_function.addItems(aggArr)
+
+        # Контейнер для расширенной группировки
+        self.grouping_container = QVBoxLayout()
+
+        # Создаем label для расширенной группировки
+        self.grouping_label = QLabel("Выберите поля для группировки:")
+        self.grouping_label.setVisible(False)  # Изначально скрыт
+
+        self.grouping_list_widget = QListWidget()
+        self.grouping_list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.grouping_list_widget.setVisible(False)  # Изначально скрыт
+
+        # Добавляем тестовые данные
+
+        self.grouping_list_widget.addItems(self.columns_name)
+
+        group_input_layout.addWidget(QLabel("Тип группировки:"))
+        group_input_layout.addWidget(self.group_by_type)
         group_input_layout.addWidget(QLabel("Группировать по:"))
         group_input_layout.addWidget(self.group_field)
-        group_input_layout.addWidget(QLabel("Агрегатная функция:"))
+
+        # Сохраняем ссылки на элементы для легкого доступа
+        self.aggregate_label = QLabel("Агрегатная функция:")
+        group_input_layout.addWidget(self.aggregate_label)
         group_input_layout.addWidget(self.aggregate_function)
+
         group_layout.addLayout(group_input_layout)
+        self.grouping_container.addWidget(self.grouping_label)
+        self.grouping_container.addWidget(self.grouping_list_widget)
+        group_layout.addLayout(self.grouping_container)
 
         having_group = QGroupBox("HAVING - Фильтрация групп")
         having_layout = QVBoxLayout(having_group)
@@ -1924,8 +1993,34 @@ class SelectDialog(QDialog):
 
         return widget
 
+    def on_group_by_changed(self, group_type):
+        """Обработчик изменения типа группировки"""
+        is_advanced_grouping = group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]
+
+        # Показываем/скрываем обычное поле группировки
+        self.group_field.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем список для расширенной группировки
+        self.grouping_list_widget.setVisible(is_advanced_grouping)
+
+        # Скрываем агрегатные функции и их лейбл при расширенной группировке
+        self.aggregate_function.setVisible(not is_advanced_grouping)
+        self.aggregate_label.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем label для расширенной группировки
+        self.grouping_label.setVisible(is_advanced_grouping)
+
+        # Обновляем подпись в зависимости от типа группировки
+        if group_type == "GROUPING SETS":
+            self.grouping_label.setText("Выберите наборы полей для группировки:")
+        elif group_type == "ROLLUP":
+            self.grouping_label.setText("Выберите иерархию полей для ROLLUP:")
+        elif group_type == "CUBE":
+            self.grouping_label.setText("Выберите поля для CUBE:")
+        else:
+            self.grouping_label.setText("Выберите поля для группировки:")
+
     def on_select_where(self):
-        pass
         dlg = SelectDialog(self)
         dlg.exec()
 
@@ -2060,7 +2155,7 @@ class SelectDialog(QDialog):
                 case_clauses = case_clauses[:len(case_clauses) - 2]
 
             if self.case_else.text() != "":
-                case_clauses += f" ELSE {self.case_else.text()} "
+                case_clauses += f" ELSE '{self.case_else.text()}' "
             case_clauses += " END "
             if self.case_as_name.text() != "":
                 case_clauses += f"AS {self.case_as_name.text()} "
@@ -2071,15 +2166,32 @@ class SelectDialog(QDialog):
             field = self.where_field.currentText()
             operator = self.where_operator.currentText()
             where_clause = f"WHERE {field} {operator} '{where_value}'"
+
+        # Обработка расширенной группировки
         group_clause = ""
-        group_field = self.group_field.currentText()
+        group_type = self.group_by_type.currentText()
         aggregate = self.aggregate_function.currentText()
 
-        if group_field:
-            group_clause = f"GROUP BY {group_field}"
-            if aggregate:
-                # Для агрегатных функций используем обычные имена столбцов
-                select_clause = f"SELECT {group_field}, {aggregate}"
+        if group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]:
+            # Получаем выбранные поля из списка
+            selected_grouping_fields = [item.text() for item in self.grouping_list_widget.selectedItems()]
+            if selected_grouping_fields:
+                if group_type == "GROUPING SETS":
+                    group_clause = f"GROUP BY GROUPING SETS (({'), ('.join(selected_grouping_fields)}))"
+                elif group_type == "ROLLUP":
+                    group_clause = f"GROUP BY ROLLUP ({', '.join(selected_grouping_fields)})"
+                elif group_type == "CUBE":
+                    group_clause = f"GROUP BY CUBE ({', '.join(selected_grouping_fields)})"
+
+                # Для расширенной группировки не используем агрегатные функции в SELECT
+                # так как они скрыты в интерфейсе
+        else:
+            # Обычная группировка
+            group_field = self.group_field.currentText()
+            if group_field:
+                group_clause = f"GROUP BY {group_field}"
+                if aggregate:
+                    select_clause = f"SELECT {group_field}, {aggregate}"
 
         having_clause = ""
         having_condition = self.having_condition.text().strip()
@@ -2104,14 +2216,12 @@ class SelectDialog(QDialog):
         SaveQuery(query)
         self.close()
 
-
-
-class DataViewerDialog(QDialog):
+class CTEDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Просмотр данных - Employee Database")
         self.setModal(True)
-        self.setGeometry(100, 100, 1400, 900)
+        self.setGeometry(100, 100, 600, 900)
         self.column_widgets = {}
         self.join_widgets = []
         self.case_widgets = []
@@ -2140,10 +2250,6 @@ class DataViewerDialog(QDialog):
         left_panel = self.create_query_builder()
         splitter.addWidget(left_panel)
 
-        right_panel = self.create_results_panel()
-        splitter.addWidget(right_panel)
-
-        splitter.setSizes([500, 900])
         layout.addWidget(splitter)
 
     def create_query_builder(self):
@@ -2160,8 +2266,6 @@ class DataViewerDialog(QDialog):
         table_layout.addWidget(QLabel("Основная таблица:"))
         table_layout.addWidget(self.main_table)
         table_layout.addStretch()
-
-
 
         join_group = QGroupBox("JOIN - Объединение таблиц")
         join_layout = QVBoxLayout(join_group)
@@ -2208,12 +2312,10 @@ class DataViewerDialog(QDialog):
         scroll_content = QWidget()
         self.scroll_layout = QVBoxLayout(scroll_content)
 
-
         columns_info = []
 
         for i in range(len(self.columns)):
             columns_info.append((self.columns_name[i], self.columns_name[i]))
-
 
         for column_name, display_name in columns_info:
             column_widget = ColumnFunctionWidget(column_name, display_name)
@@ -2256,7 +2358,6 @@ class DataViewerDialog(QDialog):
         where_layout.addLayout(where_input_layout)
 
         self.where_value_select.clicked.connect(self.on_select_where)
-        # self.where_operator.currentTextChanged.connect(self.on_operator_changed)
         self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
 
         order_group = QGroupBox("ORDER BY - Сортировка")
@@ -2276,8 +2377,14 @@ class DataViewerDialog(QDialog):
         group_group = QGroupBox("GROUP BY - Группировка")
         group_layout = QVBoxLayout(group_group)
         group_input_layout = QHBoxLayout()
+
+        self.group_by_type = QComboBox()
+        self.group_by_type.addItems(["", "GROUPING SETS", "ROLLUP", "CUBE"])
+        self.group_by_type.currentTextChanged.connect(self.on_group_by_changed)
+
         self.group_field = QComboBox()
         self.group_field.addItems([""] + self.columns_name)
+
         self.aggregate_function = QComboBox()
         aggArr = ["", "COUNT(*)"]
         for name in self.columns_name:
@@ -2287,11 +2394,36 @@ class DataViewerDialog(QDialog):
             aggArr.append("MIN(" + name + ")")
             aggArr.append("MAX(" + name + ")")
         self.aggregate_function.addItems(aggArr)
+
+        # Контейнер для расширенной группировки
+        self.grouping_container = QVBoxLayout()
+
+        # Создаем label для расширенной группировки
+        self.grouping_label = QLabel("Выберите поля для группировки:")
+        self.grouping_label.setVisible(False)  # Изначально скрыт
+
+        self.grouping_list_widget = QListWidget()
+        self.grouping_list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.grouping_list_widget.setVisible(False)  # Изначально скрыт
+
+        # Добавляем тестовые данные
+
+        self.grouping_list_widget.addItems(self.columns_name)
+
+        group_input_layout.addWidget(QLabel("Тип группировки:"))
+        group_input_layout.addWidget(self.group_by_type)
         group_input_layout.addWidget(QLabel("Группировать по:"))
         group_input_layout.addWidget(self.group_field)
-        group_input_layout.addWidget(QLabel("Агрегатная функция:"))
+
+        # Сохраняем ссылки на элементы для легкого доступа
+        self.aggregate_label = QLabel("Агрегатная функция:")
+        group_input_layout.addWidget(self.aggregate_label)
         group_input_layout.addWidget(self.aggregate_function)
+
         group_layout.addLayout(group_input_layout)
+        self.grouping_container.addWidget(self.grouping_label)
+        self.grouping_container.addWidget(self.grouping_list_widget)
+        group_layout.addLayout(self.grouping_container)
 
         having_group = QGroupBox("HAVING - Фильтрация групп")
         having_layout = QVBoxLayout(having_group)
@@ -2302,7 +2434,7 @@ class DataViewerDialog(QDialog):
         having_input_layout.addWidget(QLabel("Условие:"))
         having_input_layout.addWidget(self.having_condition)
         having_layout.addLayout(having_input_layout)
-        self.execute_btn = QPushButton("Выполнить запрос")
+        self.execute_btn = QPushButton("Сохрнать")
         self.execute_btn.clicked.connect(self.execute_query)
 
         self.sql_preview = QTextEdit()
@@ -2322,8 +2454,34 @@ class DataViewerDialog(QDialog):
 
         return widget
 
+    def on_group_by_changed(self, group_type):
+        """Обработчик изменения типа группировки"""
+        is_advanced_grouping = group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]
+
+        # Показываем/скрываем обычное поле группировки
+        self.group_field.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем список для расширенной группировки
+        self.grouping_list_widget.setVisible(is_advanced_grouping)
+
+        # Скрываем агрегатные функции и их лейбл при расширенной группировке
+        self.aggregate_function.setVisible(not is_advanced_grouping)
+        self.aggregate_label.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем label для расширенной группировки
+        self.grouping_label.setVisible(is_advanced_grouping)
+
+        # Обновляем подпись в зависимости от типа группировки
+        if group_type == "GROUPING SETS":
+            self.grouping_label.setText("Выберите наборы полей для группировки:")
+        elif group_type == "ROLLUP":
+            self.grouping_label.setText("Выберите иерархию полей для ROLLUP:")
+        elif group_type == "CUBE":
+            self.grouping_label.setText("Выберите поля для CUBE:")
+        else:
+            self.grouping_label.setText("Выберите поля для группировки:")
+
     def on_select_where(self):
-        pass
         dlg = SelectDialog(self)
         dlg.exec()
 
@@ -2457,37 +2615,44 @@ class DataViewerDialog(QDialog):
             else:
                 case_clauses = case_clauses[:len(case_clauses) - 2]
 
-
             if self.case_else.text() != "":
-                case_clauses += f" ELSE {self.case_else.text()} "
+                case_clauses += f" ELSE '{self.case_else.text()}' "
             case_clauses += " END "
             if self.case_as_name.text() != "":
                 case_clauses += f"AS {self.case_as_name.text()} "
 
         where_clause = ""
         where_value = self.where_value.text().strip()
-        where_select = self.where_input_data.currentText()
-        if where_select == "Поле Ввода":
-            if where_value:
-                field = self.where_field.currentText()
-                operator = self.where_operator.currentText()
-                where_clause = f"WHERE {field} {operator} '{where_value}'"
-        else:
-            q = GetQuery()
+        if where_value:
             field = self.where_field.currentText()
             operator = self.where_operator.currentText()
-            sel_oper = self.where_selector.currentText()
-            #Доделать any и т.п
-            where_clause = f"WHERE {field} {operator} {sel_oper}({q})"
+            where_clause = f"WHERE {field} {operator} '{where_value}'"
+
+        # Обработка расширенной группировки
         group_clause = ""
-        group_field = self.group_field.currentText()
+        group_type = self.group_by_type.currentText()
         aggregate = self.aggregate_function.currentText()
 
-        if group_field:
-            group_clause = f"GROUP BY {group_field}"
-            if aggregate:
-                # Для агрегатных функций используем обычные имена столбцов
-                select_clause = f"SELECT {group_field}, {aggregate}"
+        if group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]:
+            # Получаем выбранные поля из списка
+            selected_grouping_fields = [item.text() for item in self.grouping_list_widget.selectedItems()]
+            if selected_grouping_fields:
+                if group_type == "GROUPING SETS":
+                    group_clause = f"GROUP BY GROUPING SETS (({'), ('.join(selected_grouping_fields)}))"
+                elif group_type == "ROLLUP":
+                    group_clause = f"GROUP BY ROLLUP ({', '.join(selected_grouping_fields)})"
+                elif group_type == "CUBE":
+                    group_clause = f"GROUP BY CUBE ({', '.join(selected_grouping_fields)})"
+
+                # Для расширенной группировки не используем агрегатные функции в SELECT
+                # так как они скрыты в интерфейсе
+        else:
+            # Обычная группировка
+            group_field = self.group_field.currentText()
+            if group_field:
+                group_clause = f"GROUP BY {group_field}"
+                if aggregate:
+                    select_clause = f"SELECT {group_field}, {aggregate}"
 
         having_clause = ""
         having_condition = self.having_condition.text().strip()
@@ -2500,8 +2665,536 @@ class DataViewerDialog(QDialog):
         if order_field:
             order_clause = f"ORDER BY {order_field} {order_dir}"
 
-        query_parts = [select_clause + case_clauses, from_clause] + join_clauses + [where_clause, group_clause, having_clause,
-                                                                     order_clause]
+        query_parts = [select_clause + case_clauses, from_clause] + join_clauses + [where_clause, group_clause,
+                                                                                    having_clause,
+                                                                                    order_clause]
+        full_query = " ".join(part for part in query_parts if part)
+
+        return full_query
+
+    def execute_query(self):
+        query = self.build_sql_query()
+        SaveCTEQuery(query, self.get_selected_columns())
+        self.close()
+
+class DataViewerDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Просмотр данных - Employee Database")
+        self.setModal(True)
+        self.setGeometry(100, 100, 1700, 900)
+        self.column_widgets = {}
+        self.join_widgets = []
+        self.case_widgets = []
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        self.columns = []
+        self.columns_name = []
+        self.employee_col_full = requests.get('http://localhost:3000/employee/columns').json()
+        for col in self.employee_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("employee." + col[0])
+        self.project_col_full = requests.get('http://localhost:3000/project/columns').json()
+        for col in self.project_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("project." + col[0])
+        self.task_col_full = requests.get('http://localhost:3000/task/columns').json()
+        for col in self.task_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("task." + col[0])
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        left_panel = self.create_query_builder()
+        splitter.addWidget(left_panel)
+
+        right_panel = self.create_results_panel()
+        splitter.addWidget(right_panel)
+
+        splitter.setSizes([850, 850])
+        layout.addWidget(splitter)
+
+    def create_query_builder(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        CTE_group = QGroupBox("CTE - Вспомогательная таблица")
+        CTE_layout = QHBoxLayout(CTE_group)
+
+        self.CTE_name = QLineEdit()
+        self.CTE_value = QPushButton("Задать")
+        self.CTE_save = QPushButton("Сохранить")
+
+        self.CTE_value.clicked.connect(self.on_CTE_value)
+        self.CTE_save.clicked.connect(self.on_CTE_save)
+
+        CTE_layout.addWidget(QLabel("Название:"))
+        CTE_layout.addWidget(self.CTE_name)
+        CTE_layout.addWidget(QLabel("Задать:"))
+        CTE_layout.addWidget(self.CTE_value)
+        CTE_layout.addWidget(QLabel("Сохранить (нажать после задания запроса):"))
+        CTE_layout.addWidget(self.CTE_save)
+
+        table_group = QGroupBox("FROM - Выбор таблицы")
+        table_layout = QHBoxLayout(table_group)
+
+        self.main_table = QComboBox()
+        self.main_table.addItems(["employee", "task", "project"])
+        self.main_table.setCurrentText("employee")
+
+        table_layout.addWidget(QLabel("Основная таблица:"))
+        table_layout.addWidget(self.main_table)
+        table_layout.addStretch()
+
+        join_group = QGroupBox("JOIN - Объединение таблиц")
+        join_layout = QVBoxLayout(join_group)
+
+        self.joins_container = QVBoxLayout()
+
+        self.add_join_btn = QPushButton("+ Добавить JOIN")
+        self.add_join_btn.clicked.connect(self.add_join_widget)
+
+        join_layout.addLayout(self.joins_container)
+        join_layout.addWidget(self.add_join_btn)
+
+        case_group = QGroupBox("CASE - Объединение таблиц")
+        case_layout = QVBoxLayout(case_group)
+
+        self.cases_container = QVBoxLayout()
+
+        self.add_case_btn = QPushButton("+ Добавить WHEN ... THEN")
+        self.add_case_btn.clicked.connect(self.add_case_widget)
+
+        self.case_as_name = QLineEdit()
+        self.case_as_name.setMaxLength(100)
+        self.case_else = QLineEdit()
+        self.case_else.setMaxLength(100)
+
+        self.case_desc_form = QFormLayout()
+        self.case_desc_form.addRow("AS", self.case_as_name)
+        self.case_desc_form.addRow("ELSE", self.case_else)
+
+        case_layout.addLayout(self.case_desc_form)
+        case_layout.addLayout(self.cases_container)
+
+        case_layout.addWidget(self.add_case_btn)
+
+        select_group = QGroupBox("SELECT - Выбор столбцов и функции")
+        select_layout = QVBoxLayout(select_group)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)  # Ограничиваем высоту и включаем скролл
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(scroll_content)
+
+        columns_info = []
+
+        for i in range(len(self.columns)):
+            columns_info.append((self.columns_name[i], self.columns_name[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.scroll_layout.addStretch()
+
+        scroll_area.setWidget(scroll_content)
+        select_layout.addWidget(scroll_area)
+
+        where_group = QGroupBox("WHERE - Фильтрация")
+        where_layout = QVBoxLayout(where_group)
+        where_input_layout = QHBoxLayout()
+        self.where_field = QComboBox()
+        self.where_field.addItems(self.columns_name)
+        self.where_operator = QComboBox()
+        self.where_operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.where_value = QLineEdit()
+        self.where_input_data = QComboBox()
+        self.where_input_data.addItems(["Поле Ввода", "SQL подзапрос"])
+        self.where_value_label = QLabel("Значение:")
+        self.where_value_select = QPushButton("Задать")
+        self.where_selector = QComboBox()
+        self.where_selector.addItems(["", "ANY", "ALL", "EXIST"])
+        self.where_value_select.setVisible(False)
+        self.where_selector.setVisible(False)
+        self.where_value.setPlaceholderText("Значение для фильтра")
+        where_input_layout.addWidget(QLabel("Поле:"))
+        where_input_layout.addWidget(self.where_field)
+        where_input_layout.addWidget(QLabel("Оператор:"))
+        where_input_layout.addWidget(self.where_operator)
+        where_input_layout.addWidget(QLabel("Ввод данных:"))
+        where_input_layout.addWidget(self.where_input_data)
+        where_input_layout.addWidget(self.where_value_label)
+        where_input_layout.addWidget(self.where_value)
+        where_input_layout.addWidget(self.where_selector)
+        where_input_layout.addWidget(self.where_value_select)
+        where_layout.addLayout(where_input_layout)
+
+        self.where_value_select.clicked.connect(self.on_select_where)
+        self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
+
+        order_group = QGroupBox("ORDER BY - Сортировка")
+        order_layout = QVBoxLayout(order_group)
+        order_input_layout = QHBoxLayout()
+        self.order_field = QComboBox()
+        self.order_field.addItems([""] + self.columns_name)
+        self.order_direction = QComboBox()
+        self.order_direction.addItems(["ASC", "DESC"])
+
+        order_input_layout.addWidget(QLabel("Сортировать по:"))
+        order_input_layout.addWidget(self.order_field)
+        order_input_layout.addWidget(QLabel("Направление:"))
+        order_input_layout.addWidget(self.order_direction)
+        order_layout.addLayout(order_input_layout)
+
+        group_group = QGroupBox("GROUP BY - Группировка")
+        group_layout = QVBoxLayout(group_group)
+        group_input_layout = QHBoxLayout()
+
+        self.group_by_type = QComboBox()
+        self.group_by_type.addItems(["", "GROUPING SETS", "ROLLUP", "CUBE"])
+        self.group_by_type.currentTextChanged.connect(self.on_group_by_changed)
+
+        self.group_field = QComboBox()
+        self.group_field.addItems([""] + self.columns_name)
+
+        self.aggregate_function = QComboBox()
+        aggArr = ["", "COUNT(*)"]
+        for name in self.columns_name:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        # Контейнер для расширенной группировки
+        self.grouping_container = QVBoxLayout()
+
+        # Создаем label для расширенной группировки
+        self.grouping_label = QLabel("Выберите поля для группировки:")
+        self.grouping_label.setVisible(False)  # Изначально скрыт
+
+        self.grouping_list_widget = QListWidget()
+        self.grouping_list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.grouping_list_widget.setVisible(False)  # Изначально скрыт
+
+        self.grouping_list_widget.addItems(self.columns_name)
+
+        group_input_layout.addWidget(QLabel("Тип группировки:"))
+        group_input_layout.addWidget(self.group_by_type)
+        self.group_field_label = QLabel("Группировать по:")
+        group_input_layout.addWidget(self.group_field_label)
+        group_input_layout.addWidget(self.group_field)
+
+        # Сохраняем ссылки на элементы для легкого доступа
+        self.aggregate_label = QLabel("Агрегатная функция:")
+        group_input_layout.addWidget(self.aggregate_label)
+        group_input_layout.addWidget(self.aggregate_function)
+
+        group_layout.addLayout(group_input_layout)
+        self.grouping_container.addWidget(self.grouping_label)
+        self.grouping_container.addWidget(self.grouping_list_widget)
+        group_layout.addLayout(self.grouping_container)
+
+        having_group = QGroupBox("HAVING - Фильтрация групп")
+        having_layout = QVBoxLayout(having_group)
+        having_input_layout = QHBoxLayout()
+        self.having_condition = QLineEdit()
+        self.having_condition.setPlaceholderText("Например: COUNT(*) > 1 OR AVG(salary) > 50000")
+
+        having_input_layout.addWidget(QLabel("Условие:"))
+        having_input_layout.addWidget(self.having_condition)
+        having_layout.addLayout(having_input_layout)
+        self.execute_btn = QPushButton("Выполнить запрос")
+        self.execute_btn.clicked.connect(self.execute_query)
+
+        self.sql_preview = QTextEdit()
+        self.sql_preview.setPlaceholderText("Здесь будет отображаться сгенерированный SQL запрос...")
+        self.sql_preview.setMaximumHeight(100)
+
+        layout.addWidget(CTE_group)
+        layout.addWidget(table_group)
+        layout.addWidget(join_group)
+        layout.addWidget(case_group)
+        layout.addWidget(select_group)
+        layout.addWidget(where_group)
+        layout.addWidget(order_group)
+        layout.addWidget(group_group)
+        layout.addWidget(having_group)
+        layout.addWidget(self.execute_btn)
+        layout.addWidget(self.sql_preview)
+
+        return widget
+
+    def on_CTE_save(self):
+        arr = GetCTEarr()
+        name = self.CTE_name.text()
+        for i in range(len(arr)):
+            arr[i] = arr[i][arr[i].find(".") + 1:]
+            arr[i] = name + "." + arr[i]
+        self.main_table.addItems([name])
+        columns_info = []
+
+        for i in range(len(arr)):
+            columns_info.append((arr[i], arr[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.where_field.addItems(arr)
+
+        self.order_direction.addItems(arr)
+
+        self.group_field.addItems(arr)
+
+        aggArr = []
+        for name in arr:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        ClearCTEarr()
+
+    def on_select_where(self):
+        dlg = SelectDialog(self)
+        dlg.exec()
+
+    def on_CTE_value(self):
+        dlg = CTEDialog(self)
+        dlg.exec()
+
+    def on_operator_changed(self, function_name):
+        if function_name == "Поле Ввода":
+            self.where_value_label.setText("Значение:")
+            self.where_value_select.setVisible(False)
+            self.where_selector.setVisible(False)
+            self.where_value.setVisible(True)
+        elif function_name == "SQL подзапрос":
+            self.where_value_label.setText("Запрос и селектор:")
+            self.where_value.setVisible(False)
+            self.where_selector.setVisible(True)
+            self.where_value_select.setVisible(True)
+
+    def on_group_by_changed(self, group_type):
+        """Обработчик изменения типа группировки"""
+        is_advanced_grouping = group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]
+
+        # Показываем/скрываем обычное поле группировки
+        self.group_field.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем список для расширенной группировки
+        self.grouping_list_widget.setVisible(is_advanced_grouping)
+        self.group_field_label.setVisible(not is_advanced_grouping)
+        # Скрываем агрегатные функции и их лейбл при расширенной группировке
+        self.aggregate_function.setVisible(not is_advanced_grouping)
+        self.aggregate_label.setVisible(not is_advanced_grouping)
+
+        # Показываем/скрываем label для расширенной группировки
+        self.grouping_label.setVisible(is_advanced_grouping)
+
+        # Обновляем подпись в зависимости от типа группировки
+        if group_type == "GROUPING SETS":
+            self.grouping_label.setText("Выберите наборы полей для группировки:")
+        elif group_type == "ROLLUP":
+            self.grouping_label.setText("Выберите иерархию полей для ROLLUP:")
+        elif group_type == "CUBE":
+            self.grouping_label.setText("Выберите поля для CUBE:")
+        else:
+            self.grouping_label.setText("Выберите поля для группировки:")
+
+    def add_join_widget(self):
+        join_widget = JoinWidget()
+        self.joins_container.addWidget(join_widget)
+        self.join_widgets.append(join_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_join_widget(join_widget, remove_btn))
+
+        join_container = QHBoxLayout()
+        join_container.addWidget(join_widget)
+        join_container.addWidget(remove_btn)
+
+        self.joins_container.insertLayout(self.joins_container.count() - 1, join_container)
+
+    def remove_join_widget(self, join_widget, remove_btn):
+        for i in range(self.joins_container.count()):
+            item = self.joins_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(join_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.joins_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.join_widgets.remove(join_widget)
+
+    def add_case_widget(self):
+        case_widget = CaseWidget(self.columns_name)
+        self.cases_container.addWidget(case_widget)
+        self.case_widgets.append(case_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_case_widget(case_widget, remove_btn))
+
+        case_container = QHBoxLayout()
+        case_container.addWidget(case_widget)
+        case_container.addWidget(remove_btn)
+
+        self.cases_container.insertLayout(self.cases_container.count() - 1, case_container)
+
+    def remove_case_widget(self, case_widget, remove_btn):
+        for i in range(self.cases_container.count()):
+            item = self.cases_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(case_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.cases_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+
+        self.case_widgets.remove(case_widget)
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+
+        return widget
+
+    def get_selected_columns(self):
+        selected_columns = []
+        for column_widget in self.column_widgets.values():
+            expression = column_widget.get_column_expression()
+            if expression:
+                selected_columns.append(expression)
+        return selected_columns
+
+    def get_join_expressions(self):
+        joins = []
+        for join_widget in self.join_widgets:
+            join_expr = join_widget.get_join_expression()
+            if join_expr:
+                joins.append(join_expr)
+        return joins
+
+    def get_case_expressions(self):
+        cases = []
+        for case_widget in self.case_widgets:
+            case_expr = case_widget.get_case_expression()
+            if case_expr:
+                cases.append(case_expr)
+        return cases
+
+    def build_sql_query(self):
+        #CTE
+
+        CTE_name = self.CTE_name.text().strip()
+        CTE_clause = ""
+        if GetCTEquery() != "":
+            CTE_clause = f"WITH RECURSIVE {CTE_name} AS ({GetCTEquery()}) "
+
+        # SELECT
+        selected_columns = self.get_selected_columns()
+
+        if not selected_columns:
+            selected_columns = ["*"]
+
+        select_clause = "SELECT " + ", ".join(selected_columns)
+
+        from_clause = f"FROM {self.main_table.currentText()}"
+
+        join_clauses = self.get_join_expressions()
+
+        case_clauses = ""
+        if self.get_case_expressions() != []:
+            case_clauses = f", CASE "
+            for i in self.get_case_expressions():
+                case_clauses += i + ", "
+            else:
+                case_clauses = case_clauses[:len(case_clauses) - 2]
+
+            if self.case_else.text() != "":
+                case_clauses += f" ELSE '{self.case_else.text()}' "
+            case_clauses += " END "
+            if self.case_as_name.text() != "":
+                case_clauses += f"AS {self.case_as_name.text()} "
+
+        where_clause = ""
+        where_value = self.where_value.text().strip()
+        if where_value:
+            field = self.where_field.currentText()
+            operator = self.where_operator.currentText()
+            where_clause = f"WHERE {field} {operator} '{where_value}'"
+
+        # Обработка расширенной группировки
+        group_clause = ""
+        group_type = self.group_by_type.currentText()
+        aggregate = self.aggregate_function.currentText()
+
+        if group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]:
+            # Получаем выбранные поля из списка
+            selected_grouping_fields = [item.text() for item in self.grouping_list_widget.selectedItems()]
+            if selected_grouping_fields:
+                if group_type == "GROUPING SETS":
+                    group_clause = f"GROUP BY GROUPING SETS (({'), ('.join(selected_grouping_fields)}))"
+                elif group_type == "ROLLUP":
+                    group_clause = f"GROUP BY ROLLUP ({', '.join(selected_grouping_fields)})"
+                elif group_type == "CUBE":
+                    group_clause = f"GROUP BY CUBE ({', '.join(selected_grouping_fields)})"
+
+                # Для расширенной группировки не используем агрегатные функции в SELECT
+                # так как они скрыты в интерфейсе
+        else:
+            # Обычная группировка
+            group_field = self.group_field.currentText()
+            if group_field:
+                group_clause = f"GROUP BY {group_field}"
+                if aggregate:
+                    select_clause = f"SELECT {group_field}, {aggregate}"
+
+        having_clause = ""
+        having_condition = self.having_condition.text().strip()
+        if having_condition and group_clause:
+            having_clause = f"HAVING {having_condition}"
+
+        order_clause = ""
+        order_field = self.order_field.currentText()
+        order_dir = self.order_direction.currentText()
+        if order_field:
+            order_clause = f"ORDER BY {order_field} {order_dir}"
+
+        query_parts = [CTE_clause + select_clause + case_clauses, from_clause] + join_clauses + [where_clause, group_clause,
+                                                                                    having_clause,
+                                                                                    order_clause]
         full_query = " ".join(part for part in query_parts if part)
 
         return full_query
@@ -2561,6 +3254,7 @@ class DataViewerDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
 
+
 class FieldWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -2609,7 +3303,6 @@ class FieldWidget(QWidget):
             QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
 
 
-
 class AddTypeDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -2637,7 +3330,6 @@ class AddTypeDialog(QDialog):
         self.addForm = QFormLayout()
         self.addForm.addRow('Список значений', self.enumList)
         self.addForm.addWidget(self.compoAdd)
-
 
         self.typeForm = QFormLayout()
         self.typeForm.addRow('Название типа', self.typeName)
@@ -2702,7 +3394,6 @@ class AddTypeDialog(QDialog):
     def employee_remove_constraint_col(self):
         col = self.employeeRenameCol.currentText()
 
-
     def createSQLquery(self):
         query = f"CREATE TYPE {self.typeName.text().strip()} AS"
         if self.typeType.currentText() == "ENUM":
@@ -2724,7 +3415,6 @@ class AddTypeDialog(QDialog):
             makeLog("Ошибка при добавлении!")
         else:
             makeLog("Изменения добавлены!")
-
 
 
 class DropTypeDialog(QDialog):
@@ -2788,6 +3478,7 @@ class DropTypeDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
 
+
 class ShowTypesDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -2845,13 +3536,9 @@ class ShowTypesDialog(QDialog):
             QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
 
 
-
-
 class AlterTypesDialog(QDialog):
     def __init__(self):
         super().__init__()
-
-
 
         self.setWindowTitle("Редактирование пользовательских типов")
         self.setGeometry(300, 300, 400, 220)
@@ -2926,7 +3613,6 @@ class AlterTypesDialog(QDialog):
         self.drop_form = QFormLayout()
 
         self.dropUDT = QComboBox()
-
 
         for col in self.types:
             self.dropUDT.addItem(col)
@@ -3031,8 +3717,6 @@ class AlterTypesDialog(QDialog):
                         processed_data = [j[1:-1] for j in i[0][1:-1].split(", ")]
                         break
 
-
-
             return processed_data
 
         except Exception as e:
@@ -3092,7 +3776,6 @@ class AlterTypesDialog(QDialog):
                 break
 
 
-
 class UDTDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -3102,7 +3785,6 @@ class UDTDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
-
         self.show_button = QPushButton('Отобразить типы')
         self.show_button.clicked.connect(self.showUDT)
         self.add_button = QPushButton('Добавить тип')
@@ -3121,8 +3803,6 @@ class UDTDialog(QDialog):
 
         self.empl_box = QGroupBox("Пользовательские типы")
         self.empl_box.setLayout(self.UDT_layout)  # установка макета в блок
-
-
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.empl_box)
@@ -3147,101 +3827,1534 @@ class UDTDialog(QDialog):
         dlg.exec()
 
 
+class CreateViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Создание VIEW")
+        self.setModal(True)
+        self.setGeometry(100, 100, 1000, 900)
+        self.column_widgets = {}
+        self.join_widgets = []
+        self.case_widgets = []
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        self.columns = []
+        self.columns_name = []
+        self.employee_col_full = requests.get('http://localhost:3000/employee/columns').json()
+        for col in self.employee_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("employee." + col[0])
+        self.project_col_full = requests.get('http://localhost:3000/project/columns').json()
+        for col in self.project_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("project." + col[0])
+        self.task_col_full = requests.get('http://localhost:3000/task/columns').json()
+        for col in self.task_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("task." + col[0])
+
+        left_panel = self.create_query_builder()
+
+        layout.addWidget(left_panel)
+
+    def create_query_builder(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        # Блок для названия VIEW
+        view_name_group = QGroupBox("Название VIEW")
+        view_name_layout = QHBoxLayout(view_name_group)
+
+        self.view_name_edit = QLineEdit()
+        self.view_name_edit.setPlaceholderText("Введите название представления")
+        self.view_name_edit.setMaxLength(100)
+
+        view_name_layout.addWidget(QLabel("Название:"))
+        view_name_layout.addWidget(self.view_name_edit)
+        view_name_layout.addStretch()
+
+        # Остальные блоки из DataViewerDialog
+        CTE_group = QGroupBox("CTE - Вспомогательная таблица")
+        CTE_layout = QHBoxLayout(CTE_group)
+
+        self.CTE_name = QLineEdit()
+        self.CTE_value = QPushButton("Задать")
+        self.CTE_save = QPushButton("Сохранить")
+
+        self.CTE_value.clicked.connect(self.on_CTE_value)
+        self.CTE_save.clicked.connect(self.on_CTE_save)
+
+        CTE_layout.addWidget(QLabel("Название:"))
+        CTE_layout.addWidget(self.CTE_name)
+        CTE_layout.addWidget(QLabel("Задать:"))
+        CTE_layout.addWidget(self.CTE_value)
+        CTE_layout.addWidget(QLabel("Сохранить (нажать после задания запроса):"))
+        CTE_layout.addWidget(self.CTE_save)
+
+        table_group = QGroupBox("FROM - Выбор таблицы")
+        table_layout = QHBoxLayout(table_group)
+
+        self.main_table = QComboBox()
+        self.main_table.addItems(["employee", "task", "project"])
+        self.main_table.setCurrentText("employee")
+
+        table_layout.addWidget(QLabel("Основная таблица:"))
+        table_layout.addWidget(self.main_table)
+        table_layout.addStretch()
+
+        join_group = QGroupBox("JOIN - Объединение таблиц")
+        join_layout = QVBoxLayout(join_group)
+
+        self.joins_container = QVBoxLayout()
+
+        self.add_join_btn = QPushButton("+ Добавить JOIN")
+        self.add_join_btn.clicked.connect(self.add_join_widget)
+
+        join_layout.addLayout(self.joins_container)
+        join_layout.addWidget(self.add_join_btn)
+
+        case_group = QGroupBox("CASE - Объединение таблиц")
+        case_layout = QVBoxLayout(case_group)
+
+        self.cases_container = QVBoxLayout()
+
+        self.add_case_btn = QPushButton("+ Добавить WHEN ... THEN")
+        self.add_case_btn.clicked.connect(self.add_case_widget)
+
+        self.case_as_name = QLineEdit()
+        self.case_as_name.setMaxLength(100)
+        self.case_else = QLineEdit()
+        self.case_else.setMaxLength(100)
+
+        self.case_desc_form = QFormLayout()
+        self.case_desc_form.addRow("AS", self.case_as_name)
+        self.case_desc_form.addRow("ELSE", self.case_else)
+
+        case_layout.addLayout(self.case_desc_form)
+        case_layout.addLayout(self.cases_container)
+
+        case_layout.addWidget(self.add_case_btn)
+
+        select_group = QGroupBox("SELECT - Выбор столбцов и функции")
+        select_layout = QVBoxLayout(select_group)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(scroll_content)
+
+        columns_info = []
+
+        for i in range(len(self.columns)):
+            columns_info.append((self.columns_name[i], self.columns_name[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.scroll_layout.addStretch()
+
+        scroll_area.setWidget(scroll_content)
+        select_layout.addWidget(scroll_area)
+
+        where_group = QGroupBox("WHERE - Фильтрация")
+        where_layout = QVBoxLayout(where_group)
+        where_input_layout = QHBoxLayout()
+        self.where_field = QComboBox()
+        self.where_field.addItems(self.columns_name)
+        self.where_operator = QComboBox()
+        self.where_operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.where_value = QLineEdit()
+        self.where_input_data = QComboBox()
+        self.where_input_data.addItems(["Поле Ввода", "SQL подзапрос"])
+        self.where_value_label = QLabel("Значение:")
+        self.where_value_select = QPushButton("Задать")
+        self.where_selector = QComboBox()
+        self.where_selector.addItems(["", "ANY", "ALL", "EXIST"])
+        self.where_value_select.setVisible(False)
+        self.where_selector.setVisible(False)
+        self.where_value.setPlaceholderText("Значение для фильтра")
+        where_input_layout.addWidget(QLabel("Поле:"))
+        where_input_layout.addWidget(self.where_field)
+        where_input_layout.addWidget(QLabel("Оператор:"))
+        where_input_layout.addWidget(self.where_operator)
+        where_input_layout.addWidget(QLabel("Ввод данных:"))
+        where_input_layout.addWidget(self.where_input_data)
+        where_input_layout.addWidget(self.where_value_label)
+        where_input_layout.addWidget(self.where_value)
+        where_input_layout.addWidget(self.where_selector)
+        where_input_layout.addWidget(self.where_value_select)
+        where_layout.addLayout(where_input_layout)
+
+        self.where_value_select.clicked.connect(self.on_select_where)
+        self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
+
+        order_group = QGroupBox("ORDER BY - Сортировка")
+        order_layout = QVBoxLayout(order_group)
+        order_input_layout = QHBoxLayout()
+        self.order_field = QComboBox()
+        self.order_field.addItems([""] + self.columns_name)
+        self.order_direction = QComboBox()
+        self.order_direction.addItems(["ASC", "DESC"])
+
+        order_input_layout.addWidget(QLabel("Сортировать по:"))
+        order_input_layout.addWidget(self.order_field)
+        order_input_layout.addWidget(QLabel("Направление:"))
+        order_input_layout.addWidget(self.order_direction)
+        order_layout.addLayout(order_input_layout)
+
+        group_group = QGroupBox("GROUP BY - Группировка")
+        group_layout = QVBoxLayout(group_group)
+        group_input_layout = QHBoxLayout()
+
+        self.group_by_type = QComboBox()
+        self.group_by_type.addItems(["", "GROUPING SETS", "ROLLUP", "CUBE"])
+        self.group_by_type.currentTextChanged.connect(self.on_group_by_changed)
+
+        self.group_field = QComboBox()
+        self.group_field.addItems([""] + self.columns_name)
+
+        self.aggregate_function = QComboBox()
+        aggArr = ["", "COUNT(*)"]
+        for name in self.columns_name:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        self.grouping_container = QVBoxLayout()
+        self.grouping_label = QLabel("Выберите поля для группировки:")
+        self.grouping_label.setVisible(False)
+
+        self.grouping_list_widget = QListWidget()
+        self.grouping_list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.grouping_list_widget.setVisible(False)
+
+        self.grouping_list_widget.addItems(self.columns_name)
+
+        group_input_layout.addWidget(QLabel("Тип группировки:"))
+        group_input_layout.addWidget(self.group_by_type)
+        self.group_field_label = QLabel("Группировать по:")
+        group_input_layout.addWidget(self.group_field_label)
+        group_input_layout.addWidget(self.group_field)
+
+        self.aggregate_label = QLabel("Агрегатная функция:")
+        group_input_layout.addWidget(self.aggregate_label)
+        group_input_layout.addWidget(self.aggregate_function)
+
+        group_layout.addLayout(group_input_layout)
+        self.grouping_container.addWidget(self.grouping_label)
+        self.grouping_container.addWidget(self.grouping_list_widget)
+        group_layout.addLayout(self.grouping_container)
+
+        having_group = QGroupBox("HAVING - Фильтрация групп")
+        having_layout = QVBoxLayout(having_group)
+        having_input_layout = QHBoxLayout()
+        self.having_condition = QLineEdit()
+        self.having_condition.setPlaceholderText("Например: COUNT(*) > 1 OR AVG(salary) > 50000")
+
+        having_input_layout.addWidget(QLabel("Условие:"))
+        having_input_layout.addWidget(self.having_condition)
+        having_layout.addLayout(having_input_layout)
+
+        self.create_view_btn = QPushButton("Создать VIEW")
+        self.create_view_btn.clicked.connect(self.create_view)
+
+        self.sql_preview = QTextEdit()
+        self.sql_preview.setPlaceholderText("Здесь будет отображаться сгенерированный SQL запрос...")
+        self.sql_preview.setMaximumHeight(100)
+
+        layout.addWidget(view_name_group)
+        layout.addWidget(CTE_group)
+        layout.addWidget(table_group)
+        layout.addWidget(join_group)
+        layout.addWidget(case_group)
+        layout.addWidget(select_group)
+        layout.addWidget(where_group)
+        layout.addWidget(order_group)
+        layout.addWidget(group_group)
+        layout.addWidget(having_group)
+        layout.addWidget(self.create_view_btn)
+        layout.addWidget(self.sql_preview)
+
+        return widget
+
+    def on_CTE_save(self):
+        arr = GetCTEarr()
+        name = self.CTE_name.text()
+        for i in range(len(arr)):
+            arr[i] = arr[i][arr[i].find(".") + 1:]
+            arr[i] = name + "." + arr[i]
+        self.main_table.addItems([name])
+        columns_info = []
+
+        for i in range(len(arr)):
+            columns_info.append((arr[i], arr[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.where_field.addItems(arr)
+        self.order_field.addItems([""] + arr)
+        self.group_field.addItems([""] + arr)
+
+        aggArr = []
+        for name in arr:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        ClearCTEarr()
+
+    def on_select_where(self):
+        dlg = SelectDialog(self)
+        dlg.exec()
+
+    def on_CTE_value(self):
+        dlg = CTEDialog(self)
+        dlg.exec()
+
+    def on_operator_changed(self, function_name):
+        if function_name == "Поле Ввода":
+            self.where_value_label.setText("Значение:")
+            self.where_value_select.setVisible(False)
+            self.where_selector.setVisible(False)
+            self.where_value.setVisible(True)
+        elif function_name == "SQL подзапрос":
+            self.where_value_label.setText("Запрос и селектор:")
+            self.where_value.setVisible(False)
+            self.where_selector.setVisible(True)
+            self.where_value_select.setVisible(True)
+
+    def on_group_by_changed(self, group_type):
+        is_advanced_grouping = group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]
+        self.group_field.setVisible(not is_advanced_grouping)
+        self.grouping_list_widget.setVisible(is_advanced_grouping)
+        self.group_field_label.setVisible(not is_advanced_grouping)
+        self.aggregate_function.setVisible(not is_advanced_grouping)
+        self.aggregate_label.setVisible(not is_advanced_grouping)
+        self.grouping_label.setVisible(is_advanced_grouping)
+
+        if group_type == "GROUPING SETS":
+            self.grouping_label.setText("Выберите наборы полей для группировки:")
+        elif group_type == "ROLLUP":
+            self.grouping_label.setText("Выберите иерархию полей для ROLLUP:")
+        elif group_type == "CUBE":
+            self.grouping_label.setText("Выберите поля для CUBE:")
+        else:
+            self.grouping_label.setText("Выберите поля для группировки:")
+
+    def add_join_widget(self):
+        join_widget = JoinWidget()
+        self.joins_container.addWidget(join_widget)
+        self.join_widgets.append(join_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_join_widget(join_widget, remove_btn))
+
+        join_container = QHBoxLayout()
+        join_container.addWidget(join_widget)
+        join_container.addWidget(remove_btn)
+
+        self.joins_container.insertLayout(self.joins_container.count() - 1, join_container)
+
+    def remove_join_widget(self, join_widget, remove_btn):
+        for i in range(self.joins_container.count()):
+            item = self.joins_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(join_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.joins_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+        self.join_widgets.remove(join_widget)
+
+    def add_case_widget(self):
+        case_widget = CaseWidget(self.columns_name)
+        self.cases_container.addWidget(case_widget)
+        self.case_widgets.append(case_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_case_widget(case_widget, remove_btn))
+
+        case_container = QHBoxLayout()
+        case_container.addWidget(case_widget)
+        case_container.addWidget(remove_btn)
+
+        self.cases_container.insertLayout(self.cases_container.count() - 1, case_container)
+
+    def remove_case_widget(self, case_widget, remove_btn):
+        for i in range(self.cases_container.count()):
+            item = self.cases_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(case_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.cases_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+        self.case_widgets.remove(case_widget)
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+        return widget
+
+    def get_selected_columns(self):
+        selected_columns = []
+        for column_widget in self.column_widgets.values():
+            expression = column_widget.get_column_expression()
+            if expression:
+                selected_columns.append(expression)
+        return selected_columns
+
+    def get_join_expressions(self):
+        joins = []
+        for join_widget in self.join_widgets:
+            join_expr = join_widget.get_join_expression()
+            if join_expr:
+                joins.append(join_expr)
+        return joins
+
+    def get_case_expressions(self):
+        cases = []
+        for case_widget in self.case_widgets:
+            case_expr = case_widget.get_case_expression()
+            if case_expr:
+                cases.append(case_expr)
+        return cases
+
+    def build_sql_query(self):
+        CTE_name = self.CTE_name.text().strip()
+        CTE_clause = ""
+        if GetCTEquery() != "":
+            CTE_clause = f"WITH RECURSIVE {CTE_name} AS ({GetCTEquery()}) "
+
+        selected_columns = self.get_selected_columns()
+        if not selected_columns:
+            selected_columns = ["*"]
+
+        select_clause = "SELECT " + ", ".join(selected_columns)
+        from_clause = f"FROM {self.main_table.currentText()}"
+        join_clauses = self.get_join_expressions()
+
+        case_clauses = ""
+        if self.get_case_expressions() != []:
+            case_clauses = f", CASE "
+            for i in self.get_case_expressions():
+                case_clauses += i + ", "
+            else:
+                case_clauses = case_clauses[:len(case_clauses) - 2]
+
+            if self.case_else.text() != "":
+                case_clauses += f" ELSE '{self.case_else.text()}' "
+            case_clauses += " END "
+            if self.case_as_name.text() != "":
+                case_clauses += f"AS {self.case_as_name.text()} "
+
+        where_clause = ""
+        where_value = self.where_value.text().strip()
+        if where_value:
+            field = self.where_field.currentText()
+            operator = self.where_operator.currentText()
+            where_clause = f"WHERE {field} {operator} '{where_value}'"
+
+        group_clause = ""
+        group_type = self.group_by_type.currentText()
+        aggregate = self.aggregate_function.currentText()
+
+        if group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]:
+            selected_grouping_fields = [item.text() for item in self.grouping_list_widget.selectedItems()]
+            if selected_grouping_fields:
+                if group_type == "GROUPING SETS":
+                    group_clause = f"GROUP BY GROUPING SETS (({'), ('.join(selected_grouping_fields)}))"
+                elif group_type == "ROLLUP":
+                    group_clause = f"GROUP BY ROLLUP ({', '.join(selected_grouping_fields)})"
+                elif group_type == "CUBE":
+                    group_clause = f"GROUP BY CUBE ({', '.join(selected_grouping_fields)})"
+        else:
+            group_field = self.group_field.currentText()
+            if group_field:
+                group_clause = f"GROUP BY {group_field}"
+                if aggregate:
+                    select_clause = f"SELECT {group_field}, {aggregate}"
+
+        having_clause = ""
+        having_condition = self.having_condition.text().strip()
+        if having_condition and group_clause:
+            having_clause = f"HAVING {having_condition}"
+
+        order_clause = ""
+        order_field = self.order_field.currentText()
+        order_dir = self.order_direction.currentText()
+        if order_field:
+            order_clause = f"ORDER BY {order_field} {order_dir}"
+
+        query_parts = [CTE_clause + select_clause + case_clauses, from_clause] + join_clauses + [where_clause,
+                                                                                                 group_clause,
+                                                                                                 having_clause,
+                                                                                                 order_clause]
+        full_query = " ".join(part for part in query_parts if part)
+
+        return full_query
+
+    def create_view(self):
+        view_name = self.view_name_edit.text().strip()
+        query = self.build_sql_query()
+        create_view_query = f"CREATE VIEW {view_name} AS ({query})"
+
+        self.sql_preview.setText(f"Создание VIEW:\n{create_view_query}")
+
+        try:
+            # Отправка запроса на создание VIEW
+            json_string = '{"alter_string": "' + create_view_query + '"}'
+            json_data = json.loads(json_string)
+            r = requests.post('http://localhost:3000/user_type', json=json_data)
+            if r.status_code != 200:
+                makeLog("Ошибка при удалении!")
+            else:
+                makeLog("Изменения добавлены!")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при создании VIEW: {str(e)}")
+            makeLog(f"Ошибка при создании VIEW: {str(e)}")
 
 
-'''
-class ShowDataBaseWindow(QDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle('Data Base show')
-        self.resize(1300, 800)
-
-        tab = QTabWidget()
-        tab.setObjectName("show")
-
-        t = requests.get('http://localhost:3000/employee/columns').json()
-
-        self.employee_col = [i[0] for i in t]
-        self.employee_data = requests.get('http://localhost:3000/employee').json()
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(self.employee_col)
-
-        if self.employee_data is not None:
-            for row in self.employee_data:
-                items = []
-                for k in self.employee_col:
-                    #Сделать проверку на время
-                    items.append(QStandardItem(str(row[k])))
-                model.appendRow(items)
-
-        self.empl_table = QTableView()
-        self.empl_table.setModel(model)
-        self.empl_table.setSortingEnabled(True)
+class ShowViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Просмотр VIEW")
+        self.setModal(True)
+        self.setGeometry(100, 100, 1200, 900)
 
 
 
-        tab.insertTab(0, self.empl_table, 'Сотрудники') # добавляем вкладочку
-
-
-        # Данная процедура повторяется ещё три раза для создания ещё трёх вкладок
-
-        t = requests.get('http://localhost:3000/task/columns').json()
-
-        self.task_col = [i[0] for i in t]
-        self.task_data = requests.get('http://localhost:3000/task').json()
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(self.task_col)
-
-        if self.task_data is not None:
-            for row in self.task_data:
-                items = []
-                for k in self.task_col:
-                    # Сделать проверку на время
-                    items.append(QStandardItem(str(row[k])))
-                model.appendRow(items)
-
-        self.task_table = QTableView()
-        self.task_table.setModel(model)
-        self.task_table.setSortingEnabled(True)
-
-        tab.insertTab(1, self.task_table, 'Задачи')  # добавляем вкладочку
-
-        # -------------------------------
-        t = requests.get('http://localhost:3000/project/columns').json()
-        self.project_col = [i[0] for i in t]
-        self.project_data = requests.get('http://localhost:3000/project').json()
-        model_project = QStandardItemModel()
-        model_project.setHorizontalHeaderLabels(self.project_col)
-
-        if self.project_data is not None:
-            for row in self.project_data:
-                items = []
-                for k in self.project_col:
-                    items.append(QStandardItem(str(row[k])))
-                model_project.appendRow(items)
-
-        self.project_table = QTableView()
-        self.project_table.setModel(model_project)
-        self.project_table.setSortingEnabled(True)
-
-        tab.insertTab(2, self.project_table, 'Проекты')
-        # -------------------------------
-        # Конец создания вкладок
-        # -------------------------------
+        self.init_ui()
 
 
 
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        self.columns = []
+        self.columns_name = ['view_name']
+        self.employee_col_full = requests.get('http://localhost:3000/user_type/view').json()
+        for col in self.employee_col_full:
+            self.columns.append(col['view_name'])
+
+        left_panel = self.create_view_selector()
+        splitter.addWidget(left_panel)
+
+        right_panel = self.create_results_panel()
+        splitter.addWidget(right_panel)
+
+        splitter.setSizes([300, 900])
+        layout.addWidget(splitter)
+
+    def create_view_selector(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        view_group = QGroupBox("Выбор VIEW")
+        view_layout = QVBoxLayout(view_group)
+
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(self.columns)
 
 
+        self.show_btn = QPushButton("Показать данные")
+        self.show_btn.clicked.connect(self.show_view_data)
 
-        layout = QHBoxLayout()
-        layout.addWidget(tab)
+        view_layout.addWidget(QLabel("Выберите VIEW:"))
+        view_layout.addWidget(self.view_combo)
+        view_layout.addWidget(self.show_btn)
+        view_layout.addStretch()
+
+        layout.addWidget(view_group)
+        return widget
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+        return widget
+
+
+    def show_view_data(self):
+        selected_view = self.view_combo.currentText()
+        if not selected_view:
+            QMessageBox.warning(self, "Ошибка", "Выберите VIEW для просмотра")
+            return
+
+        try:
+            query = f"SELECT * FROM {selected_view}"
+            self.json_data = requests.get(f'http://localhost:3000/project/filters?col_string="{query}"').json()
+
+            if isinstance(self.json_data, str):
+                QMessageBox.warning(self, "Ошибка", self.json_data)
+                return
+
+            if self.json_data is None or len(self.json_data) == 0:
+                QMessageBox.information(self, "Информация", "VIEW не содержит данных")
+                return
+
+            demo_data = []
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            headers = list(self.json_data[0].keys())
+            self.model.update_data(demo_data, headers)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+
+class DropViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Удаление VIEW")
+        self.setModal(True)
+        self.setGeometry(300, 300, 400, 200)
+
+        self.columns = []
+        self.columns_name = ['view_name']
+        self.employee_col_full = requests.get('http://localhost:3000/user_type/view').json()
+        for col in self.employee_col_full:
+            self.columns.append(col['view_name'])
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        view_group = QGroupBox("Удаление VIEW")
+        view_layout = QVBoxLayout(view_group)
+
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(self.columns)
+
+
+        self.drop_btn = QPushButton("Удалить выбранный VIEW")
+        self.drop_btn.clicked.connect(self.drop_view)
+
+        view_layout.addWidget(QLabel("Выберите VIEW для удаления:"))
+        view_layout.addWidget(self.view_combo)
+        view_layout.addWidget(self.drop_btn)
+
+        layout.addWidget(view_group)
         self.setLayout(layout)
-'''
 
-# -------------------------------
-# Окно Добавления данных в БД
-# -------------------------------
+
+    def drop_view(self):
+        selected_view = self.view_combo.currentText()
+        if not selected_view:
+            QMessageBox.warning(self, "Ошибка", "Выберите VIEW для удаления")
+            return
+
+        try:
+            query = f"DROP VIEW {selected_view}"
+            json_string = '{"alter_string": "' + query + '"}'
+            json_data = json.loads(json_string)
+            r = requests.post('http://localhost:3000/user_type', json=json_data)
+
+            if r.status_code == 200:
+                QMessageBox.information(self, "Успех", f"VIEW '{selected_view}' успешно удален!")
+                makeLog(f"Удален VIEW: {selected_view}")
+            else:
+                QMessageBox.critical(self, "Ошибка", f"Ошибка при удалении VIEW: {r.text}")
+                makeLog(f"Ошибка при удалении VIEW: {r.text}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при удалении VIEW: {str(e)}")
+            makeLog(f"Ошибка при удалении VIEW: {str(e)}")
+
+
+class ViewManagementDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Управление VIEW")
+        self.setModal(True)
+        self.setGeometry(200, 200, 600, 400)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        self.create_button = QPushButton('Создать VIEW')
+        self.create_button.clicked.connect(self.create_view)
+
+        self.show_button = QPushButton('Просмотреть VIEW')
+        self.show_button.clicked.connect(self.show_view)
+
+        self.drop_button = QPushButton('Удалить VIEW')
+        self.drop_button.clicked.connect(self.drop_view)
+
+        self.close_button = QPushButton('Закрыть')
+        self.close_button.clicked.connect(self.close)
+
+        view_layout = QVBoxLayout()
+        view_layout.addWidget(self.create_button)
+        view_layout.addWidget(self.show_button)
+        view_layout.addWidget(self.drop_button)
+        view_layout.addWidget(self.close_button)
+        view_layout.addStretch()
+
+        view_box = QGroupBox("Управление представлениями (VIEW)")
+        view_box.setLayout(view_layout)
+
+        layout.addWidget(view_box)
+        self.setLayout(layout)
+
+    def create_view(self):
+        dlg = CreateViewDialog(self)
+        dlg.exec()
+
+    def show_view(self):
+        dlg = ShowViewDialog(self)
+        dlg.exec()
+
+    def drop_view(self):
+        dlg = DropViewDialog(self)
+        dlg.exec()
+
+
+class CreateMatViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Создание VIEW")
+        self.setModal(True)
+        self.setGeometry(100, 100, 1000, 900)
+        self.column_widgets = {}
+        self.join_widgets = []
+        self.case_widgets = []
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        self.columns = []
+        self.columns_name = []
+        self.employee_col_full = requests.get('http://localhost:3000/employee/columns').json()
+        for col in self.employee_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("employee." + col[0])
+        self.project_col_full = requests.get('http://localhost:3000/project/columns').json()
+        for col in self.project_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("project." + col[0])
+        self.task_col_full = requests.get('http://localhost:3000/task/columns').json()
+        for col in self.task_col_full:
+            self.columns.append(col[0])
+            self.columns_name.append("task." + col[0])
+
+        left_panel = self.create_query_builder()
+
+        layout.addWidget(left_panel)
+
+    def create_query_builder(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        view_name_group = QGroupBox("Название MATERIALIZE VIEW")
+        view_name_layout = QHBoxLayout(view_name_group)
+
+        self.view_name_edit = QLineEdit()
+        self.view_name_edit.setPlaceholderText("Введите название материального представления")
+        self.view_name_edit.setMaxLength(100)
+
+        view_name_layout.addWidget(QLabel("Название:"))
+        view_name_layout.addWidget(self.view_name_edit)
+        view_name_layout.addStretch()
+
+        # Остальные блоки из DataViewerDialog
+        CTE_group = QGroupBox("CTE - Вспомогательная таблица")
+        CTE_layout = QHBoxLayout(CTE_group)
+
+        self.CTE_name = QLineEdit()
+        self.CTE_value = QPushButton("Задать")
+        self.CTE_save = QPushButton("Сохранить")
+
+        self.CTE_value.clicked.connect(self.on_CTE_value)
+        self.CTE_save.clicked.connect(self.on_CTE_save)
+
+        CTE_layout.addWidget(QLabel("Название:"))
+        CTE_layout.addWidget(self.CTE_name)
+        CTE_layout.addWidget(QLabel("Задать:"))
+        CTE_layout.addWidget(self.CTE_value)
+        CTE_layout.addWidget(QLabel("Сохранить (нажать после задания запроса):"))
+        CTE_layout.addWidget(self.CTE_save)
+
+        table_group = QGroupBox("FROM - Выбор таблицы")
+        table_layout = QHBoxLayout(table_group)
+
+        self.main_table = QComboBox()
+        self.main_table.addItems(["employee", "task", "project"])
+        self.main_table.setCurrentText("employee")
+
+        table_layout.addWidget(QLabel("Основная таблица:"))
+        table_layout.addWidget(self.main_table)
+        table_layout.addStretch()
+
+        join_group = QGroupBox("JOIN - Объединение таблиц")
+        join_layout = QVBoxLayout(join_group)
+
+        self.joins_container = QVBoxLayout()
+
+        self.add_join_btn = QPushButton("+ Добавить JOIN")
+        self.add_join_btn.clicked.connect(self.add_join_widget)
+
+        join_layout.addLayout(self.joins_container)
+        join_layout.addWidget(self.add_join_btn)
+
+        case_group = QGroupBox("CASE - Объединение таблиц")
+        case_layout = QVBoxLayout(case_group)
+
+        self.cases_container = QVBoxLayout()
+
+        self.add_case_btn = QPushButton("+ Добавить WHEN ... THEN")
+        self.add_case_btn.clicked.connect(self.add_case_widget)
+
+        self.case_as_name = QLineEdit()
+        self.case_as_name.setMaxLength(100)
+        self.case_else = QLineEdit()
+        self.case_else.setMaxLength(100)
+
+        self.case_desc_form = QFormLayout()
+        self.case_desc_form.addRow("AS", self.case_as_name)
+        self.case_desc_form.addRow("ELSE", self.case_else)
+
+        case_layout.addLayout(self.case_desc_form)
+        case_layout.addLayout(self.cases_container)
+
+        case_layout.addWidget(self.add_case_btn)
+
+        select_group = QGroupBox("SELECT - Выбор столбцов и функции")
+        select_layout = QVBoxLayout(select_group)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(scroll_content)
+
+        columns_info = []
+
+        for i in range(len(self.columns)):
+            columns_info.append((self.columns_name[i], self.columns_name[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.scroll_layout.addStretch()
+
+        scroll_area.setWidget(scroll_content)
+        select_layout.addWidget(scroll_area)
+
+        where_group = QGroupBox("WHERE - Фильтрация")
+        where_layout = QVBoxLayout(where_group)
+        where_input_layout = QHBoxLayout()
+        self.where_field = QComboBox()
+        self.where_field.addItems(self.columns_name)
+        self.where_operator = QComboBox()
+        self.where_operator.addItems(
+            ["=", ">", "<", ">=", "<=", "!=", "LIKE", "NOT LIKE", "~", "~*", "!~", "!~*", "SIMILAR TO"])
+        self.where_value = QLineEdit()
+        self.where_input_data = QComboBox()
+        self.where_input_data.addItems(["Поле Ввода", "SQL подзапрос"])
+        self.where_value_label = QLabel("Значение:")
+        self.where_value_select = QPushButton("Задать")
+        self.where_selector = QComboBox()
+        self.where_selector.addItems(["", "ANY", "ALL", "EXIST"])
+        self.where_value_select.setVisible(False)
+        self.where_selector.setVisible(False)
+        self.where_value.setPlaceholderText("Значение для фильтра")
+        where_input_layout.addWidget(QLabel("Поле:"))
+        where_input_layout.addWidget(self.where_field)
+        where_input_layout.addWidget(QLabel("Оператор:"))
+        where_input_layout.addWidget(self.where_operator)
+        where_input_layout.addWidget(QLabel("Ввод данных:"))
+        where_input_layout.addWidget(self.where_input_data)
+        where_input_layout.addWidget(self.where_value_label)
+        where_input_layout.addWidget(self.where_value)
+        where_input_layout.addWidget(self.where_selector)
+        where_input_layout.addWidget(self.where_value_select)
+        where_layout.addLayout(where_input_layout)
+
+        self.where_value_select.clicked.connect(self.on_select_where)
+        self.where_input_data.currentTextChanged.connect(self.on_operator_changed)
+
+        order_group = QGroupBox("ORDER BY - Сортировка")
+        order_layout = QVBoxLayout(order_group)
+        order_input_layout = QHBoxLayout()
+        self.order_field = QComboBox()
+        self.order_field.addItems([""] + self.columns_name)
+        self.order_direction = QComboBox()
+        self.order_direction.addItems(["ASC", "DESC"])
+
+        order_input_layout.addWidget(QLabel("Сортировать по:"))
+        order_input_layout.addWidget(self.order_field)
+        order_input_layout.addWidget(QLabel("Направление:"))
+        order_input_layout.addWidget(self.order_direction)
+        order_layout.addLayout(order_input_layout)
+
+        group_group = QGroupBox("GROUP BY - Группировка")
+        group_layout = QVBoxLayout(group_group)
+        group_input_layout = QHBoxLayout()
+
+        self.group_by_type = QComboBox()
+        self.group_by_type.addItems(["", "GROUPING SETS", "ROLLUP", "CUBE"])
+        self.group_by_type.currentTextChanged.connect(self.on_group_by_changed)
+
+        self.group_field = QComboBox()
+        self.group_field.addItems([""] + self.columns_name)
+
+        self.aggregate_function = QComboBox()
+        aggArr = ["", "COUNT(*)"]
+        for name in self.columns_name:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        self.grouping_container = QVBoxLayout()
+        self.grouping_label = QLabel("Выберите поля для группировки:")
+        self.grouping_label.setVisible(False)
+
+        self.grouping_list_widget = QListWidget()
+        self.grouping_list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.grouping_list_widget.setVisible(False)
+
+        self.grouping_list_widget.addItems(self.columns_name)
+
+        group_input_layout.addWidget(QLabel("Тип группировки:"))
+        group_input_layout.addWidget(self.group_by_type)
+        self.group_field_label = QLabel("Группировать по:")
+        group_input_layout.addWidget(self.group_field_label)
+        group_input_layout.addWidget(self.group_field)
+
+        self.aggregate_label = QLabel("Агрегатная функция:")
+        group_input_layout.addWidget(self.aggregate_label)
+        group_input_layout.addWidget(self.aggregate_function)
+
+        group_layout.addLayout(group_input_layout)
+        self.grouping_container.addWidget(self.grouping_label)
+        self.grouping_container.addWidget(self.grouping_list_widget)
+        group_layout.addLayout(self.grouping_container)
+
+        having_group = QGroupBox("HAVING - Фильтрация групп")
+        having_layout = QVBoxLayout(having_group)
+        having_input_layout = QHBoxLayout()
+        self.having_condition = QLineEdit()
+        self.having_condition.setPlaceholderText("Например: COUNT(*) > 1 OR AVG(salary) > 50000")
+
+        having_input_layout.addWidget(QLabel("Условие:"))
+        having_input_layout.addWidget(self.having_condition)
+        having_layout.addLayout(having_input_layout)
+
+        self.create_view_btn = QPushButton("Создать MATERIALIZE VIEW")
+        self.create_view_btn.clicked.connect(self.create_view)
+
+        self.sql_preview = QTextEdit()
+        self.sql_preview.setPlaceholderText("Здесь будет отображаться сгенерированный SQL запрос...")
+        self.sql_preview.setMaximumHeight(100)
+
+        layout.addWidget(view_name_group)
+        layout.addWidget(CTE_group)
+        layout.addWidget(table_group)
+        layout.addWidget(join_group)
+        layout.addWidget(case_group)
+        layout.addWidget(select_group)
+        layout.addWidget(where_group)
+        layout.addWidget(order_group)
+        layout.addWidget(group_group)
+        layout.addWidget(having_group)
+        layout.addWidget(self.create_view_btn)
+        layout.addWidget(self.sql_preview)
+
+        return widget
+
+    def on_CTE_save(self):
+        arr = GetCTEarr()
+        name = self.CTE_name.text()
+        for i in range(len(arr)):
+            arr[i] = arr[i][arr[i].find(".") + 1:]
+            arr[i] = name + "." + arr[i]
+        self.main_table.addItems([name])
+        columns_info = []
+
+        for i in range(len(arr)):
+            columns_info.append((arr[i], arr[i]))
+
+        for column_name, display_name in columns_info:
+            column_widget = ColumnFunctionWidget(column_name, display_name)
+            self.column_widgets[column_name] = column_widget
+            self.scroll_layout.addWidget(column_widget)
+
+        self.where_field.addItems(arr)
+        self.order_field.addItems([""] + arr)
+        self.group_field.addItems([""] + arr)
+
+        aggArr = []
+        for name in arr:
+            aggArr.append("COUNT(" + name + ")")
+            aggArr.append("AVG(" + name + ")")
+            aggArr.append("SUM(" + name + ")")
+            aggArr.append("MIN(" + name + ")")
+            aggArr.append("MAX(" + name + ")")
+        self.aggregate_function.addItems(aggArr)
+
+        ClearCTEarr()
+
+    def on_select_where(self):
+        dlg = SelectDialog(self)
+        dlg.exec()
+
+    def on_CTE_value(self):
+        dlg = CTEDialog(self)
+        dlg.exec()
+
+    def on_operator_changed(self, function_name):
+        if function_name == "Поле Ввода":
+            self.where_value_label.setText("Значение:")
+            self.where_value_select.setVisible(False)
+            self.where_selector.setVisible(False)
+            self.where_value.setVisible(True)
+        elif function_name == "SQL подзапрос":
+            self.where_value_label.setText("Запрос и селектор:")
+            self.where_value.setVisible(False)
+            self.where_selector.setVisible(True)
+            self.where_value_select.setVisible(True)
+
+    def on_group_by_changed(self, group_type):
+        is_advanced_grouping = group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]
+        self.group_field.setVisible(not is_advanced_grouping)
+        self.grouping_list_widget.setVisible(is_advanced_grouping)
+        self.group_field_label.setVisible(not is_advanced_grouping)
+        self.aggregate_function.setVisible(not is_advanced_grouping)
+        self.aggregate_label.setVisible(not is_advanced_grouping)
+        self.grouping_label.setVisible(is_advanced_grouping)
+
+        if group_type == "GROUPING SETS":
+            self.grouping_label.setText("Выберите наборы полей для группировки:")
+        elif group_type == "ROLLUP":
+            self.grouping_label.setText("Выберите иерархию полей для ROLLUP:")
+        elif group_type == "CUBE":
+            self.grouping_label.setText("Выберите поля для CUBE:")
+        else:
+            self.grouping_label.setText("Выберите поля для группировки:")
+
+    def add_join_widget(self):
+        join_widget = JoinWidget()
+        self.joins_container.addWidget(join_widget)
+        self.join_widgets.append(join_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_join_widget(join_widget, remove_btn))
+
+        join_container = QHBoxLayout()
+        join_container.addWidget(join_widget)
+        join_container.addWidget(remove_btn)
+
+        self.joins_container.insertLayout(self.joins_container.count() - 1, join_container)
+
+    def remove_join_widget(self, join_widget, remove_btn):
+        for i in range(self.joins_container.count()):
+            item = self.joins_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(join_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.joins_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+        self.join_widgets.remove(join_widget)
+
+    def add_case_widget(self):
+        case_widget = CaseWidget(self.columns_name)
+        self.cases_container.addWidget(case_widget)
+        self.case_widgets.append(case_widget)
+
+        remove_btn = QPushButton("+")
+        remove_btn.setFixedSize(20, 20)
+        remove_btn.clicked.connect(lambda: self.remove_case_widget(case_widget, remove_btn))
+
+        case_container = QHBoxLayout()
+        case_container.addWidget(case_widget)
+        case_container.addWidget(remove_btn)
+
+        self.cases_container.insertLayout(self.cases_container.count() - 1, case_container)
+
+    def remove_case_widget(self, case_widget, remove_btn):
+        for i in range(self.cases_container.count()):
+            item = self.cases_container.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                if item.indexOf(case_widget) != -1:
+                    for j in reversed(range(item.count())):
+                        widget = item.itemAt(j).widget()
+                        if widget:
+                            widget.setParent(None)
+                    layout_to_remove = self.cases_container.takeAt(i)
+                    layout_to_remove.deleteLater()
+                    break
+        self.case_widgets.remove(case_widget)
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+        return widget
+
+    def get_selected_columns(self):
+        selected_columns = []
+        for column_widget in self.column_widgets.values():
+            expression = column_widget.get_column_expression()
+            if expression:
+                selected_columns.append(expression)
+        return selected_columns
+
+    def get_join_expressions(self):
+        joins = []
+        for join_widget in self.join_widgets:
+            join_expr = join_widget.get_join_expression()
+            if join_expr:
+                joins.append(join_expr)
+        return joins
+
+    def get_case_expressions(self):
+        cases = []
+        for case_widget in self.case_widgets:
+            case_expr = case_widget.get_case_expression()
+            if case_expr:
+                cases.append(case_expr)
+        return cases
+
+    def build_sql_query(self):
+        CTE_name = self.CTE_name.text().strip()
+        CTE_clause = ""
+        if GetCTEquery() != "":
+            CTE_clause = f"WITH RECURSIVE {CTE_name} AS ({GetCTEquery()}) "
+
+        selected_columns = self.get_selected_columns()
+        if not selected_columns:
+            selected_columns = ["*"]
+
+        select_clause = "SELECT " + ", ".join(selected_columns)
+        from_clause = f"FROM {self.main_table.currentText()}"
+        join_clauses = self.get_join_expressions()
+
+        case_clauses = ""
+        if self.get_case_expressions() != []:
+            case_clauses = f", CASE "
+            for i in self.get_case_expressions():
+                case_clauses += i + ", "
+            else:
+                case_clauses = case_clauses[:len(case_clauses) - 2]
+
+            if self.case_else.text() != "":
+                case_clauses += f" ELSE '{self.case_else.text()}' "
+            case_clauses += " END "
+            if self.case_as_name.text() != "":
+                case_clauses += f"AS {self.case_as_name.text()} "
+
+        where_clause = ""
+        where_value = self.where_value.text().strip()
+        if where_value:
+            field = self.where_field.currentText()
+            operator = self.where_operator.currentText()
+            where_clause = f"WHERE {field} {operator} '{where_value}'"
+
+        group_clause = ""
+        group_type = self.group_by_type.currentText()
+        aggregate = self.aggregate_function.currentText()
+
+        if group_type in ["GROUPING SETS", "ROLLUP", "CUBE"]:
+            selected_grouping_fields = [item.text() for item in self.grouping_list_widget.selectedItems()]
+            if selected_grouping_fields:
+                if group_type == "GROUPING SETS":
+                    group_clause = f"GROUP BY GROUPING SETS (({'), ('.join(selected_grouping_fields)}))"
+                elif group_type == "ROLLUP":
+                    group_clause = f"GROUP BY ROLLUP ({', '.join(selected_grouping_fields)})"
+                elif group_type == "CUBE":
+                    group_clause = f"GROUP BY CUBE ({', '.join(selected_grouping_fields)})"
+        else:
+            group_field = self.group_field.currentText()
+            if group_field:
+                group_clause = f"GROUP BY {group_field}"
+                if aggregate:
+                    select_clause = f"SELECT {group_field}, {aggregate}"
+
+        having_clause = ""
+        having_condition = self.having_condition.text().strip()
+        if having_condition and group_clause:
+            having_clause = f"HAVING {having_condition}"
+
+        order_clause = ""
+        order_field = self.order_field.currentText()
+        order_dir = self.order_direction.currentText()
+        if order_field:
+            order_clause = f"ORDER BY {order_field} {order_dir}"
+
+        query_parts = [CTE_clause + select_clause + case_clauses, from_clause] + join_clauses + [where_clause,
+                                                                                                 group_clause,
+                                                                                                 having_clause,
+                                                                                                 order_clause]
+        full_query = " ".join(part for part in query_parts if part)
+
+        return full_query
+
+    def create_view(self):
+        view_name = self.view_name_edit.text().strip()
+        query = self.build_sql_query()
+        create_view_query = f"CREATE MATERIALIZED VIEW {view_name} AS ({query}) WITH DATA"
+
+        self.sql_preview.setText(f"Создание VIEW:\n{create_view_query}")
+
+        try:
+            # Отправка запроса на создание VIEW
+            json_string = '{"alter_string": "' + create_view_query + '"}'
+            json_data = json.loads(json_string)
+            r = requests.post('http://localhost:3000/user_type', json=json_data)
+            if r.status_code != 200:
+                makeLog("Ошибка при удалении!")
+            else:
+                makeLog("Изменения добавлены!")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при создании VIEW: {str(e)}")
+            makeLog(f"Ошибка при создании VIEW: {str(e)}")
+
+
+class ShowMatViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Просмотр MATERIALIZE VIEW")
+        self.setModal(True)
+        self.setGeometry(100, 100, 1200, 900)
+
+
+
+        self.init_ui()
+
+
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        self.columns = []
+        self.columns_name = ['view_name']
+        self.employee_col_full = requests.get('http://localhost:3000/user_type/matview').json()
+        for col in self.employee_col_full:
+            self.columns.append(col['view_name'])
+
+        left_panel = self.create_view_selector()
+        splitter.addWidget(left_panel)
+
+        right_panel = self.create_results_panel()
+        splitter.addWidget(right_panel)
+
+        splitter.setSizes([300, 900])
+        layout.addWidget(splitter)
+
+    def create_view_selector(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        view_group = QGroupBox("Выбор MATERIALIZE VIEW")
+        view_layout = QVBoxLayout(view_group)
+
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(self.columns)
+
+
+        self.show_btn = QPushButton("Показать данные")
+        self.show_btn.clicked.connect(self.show_view_data)
+
+        view_layout.addWidget(QLabel("Выберите MATERIALIZE VIEW:"))
+        view_layout.addWidget(self.view_combo)
+        view_layout.addWidget(self.show_btn)
+        view_layout.addStretch()
+
+        layout.addWidget(view_group)
+        return widget
+
+    def create_results_panel(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.results_table = QTableView()
+        self.model = EmployeeTableModel()
+        self.results_table.setModel(self.model)
+        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        layout.addWidget(self.results_table)
+        return widget
+
+
+    def show_view_data(self):
+        selected_view = self.view_combo.currentText()
+        if not selected_view:
+            QMessageBox.warning(self, "Ошибка", "Выберите MATERIALIZE VIEW для просмотра")
+            return
+
+        try:
+            query = f"SELECT * FROM {selected_view}"
+            self.json_data = requests.get(f'http://localhost:3000/project/filters?col_string="{query}"').json()
+
+            if isinstance(self.json_data, str):
+                QMessageBox.warning(self, "Ошибка", self.json_data)
+                return
+
+            if self.json_data is None or len(self.json_data) == 0:
+                QMessageBox.information(self, "Информация", "VIEW не содержит данных")
+                return
+
+            demo_data = []
+            for col in self.json_data:
+                info = []
+                for item in col.values():
+                    info.append(item)
+                demo_data.append(info)
+
+            headers = list(self.json_data[0].keys())
+            self.model.update_data(demo_data, headers)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка выполнения запроса: {str(e)}")
+
+
+class UpdateMatViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Обновить MATERIALIZE VIEW")
+        self.setModal(True)
+        self.setGeometry(300, 300, 400, 200)
+
+        self.columns = []
+        self.columns_name = ['view_name']
+        self.employee_col_full = requests.get('http://localhost:3000/user_type/view').json()
+        for col in self.employee_col_full:
+            self.columns.append(col['view_name'])
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        view_group = QGroupBox("Обновление MATERIALIZE VIEW")
+        view_layout = QVBoxLayout(view_group)
+
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(self.columns)
+
+
+        self.drop_btn = QPushButton("Обновить выбранный MATERIALIZE VIEW")
+        self.drop_btn.clicked.connect(self.drop_view)
+
+        view_layout.addWidget(QLabel("Выберите MATERIALIZE VIEW для обновления:"))
+        view_layout.addWidget(self.view_combo)
+        view_layout.addWidget(self.drop_btn)
+
+        layout.addWidget(view_group)
+        self.setLayout(layout)
+
+
+    def drop_view(self):
+        selected_view = self.view_combo.currentText()
+        if not selected_view:
+            QMessageBox.warning(self, "Ошибка", "Выберите MATERIALIZE VIEW для обновления")
+            return
+
+        try:
+            query = f"REFRESH MATERIALIZE VIEW {selected_view}"
+            json_string = '{"alter_string": "' + query + '"}'
+            json_data = json.loads(json_string)
+            r = requests.post('http://localhost:3000/user_type', json=json_data)
+
+            if r.status_code == 200:
+                QMessageBox.information(self, "Успех", f"MATERIALIZE VIEW '{selected_view}' успешно обновлён!")
+                makeLog(f"Обновлён VIEW: {selected_view}")
+            else:
+                QMessageBox.critical(self, "Ошибка", f"Ошибка при обновлении MATERIALIZE VIEW: {r.text}")
+                makeLog(f"Ошибка при обновлении VIEW: {r.text}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при обновлении MATERIALIZE VIEW: {str(e)}")
+            makeLog(f"Ошибка при обновлении VIEW: {str(e)}")
+
+
+
+class DropMatViewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Удаление MATERIALIZE VIEW")
+        self.setModal(True)
+        self.setGeometry(300, 300, 400, 200)
+
+        self.columns = []
+        self.columns_name = ['view_name']
+        self.employee_col_full = requests.get('http://localhost:3000/user_type/view').json()
+        for col in self.employee_col_full:
+            self.columns.append(col['view_name'])
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        view_group = QGroupBox("Удаление MATERIALIZE VIEW")
+        view_layout = QVBoxLayout(view_group)
+
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(self.columns)
+
+
+        self.drop_btn = QPushButton("Удалить выбранный MATERIALIZE VIEW")
+        self.drop_btn.clicked.connect(self.drop_view)
+
+        view_layout.addWidget(QLabel("Выберите MATERIALIZE VIEW для удаления:"))
+        view_layout.addWidget(self.view_combo)
+        view_layout.addWidget(self.drop_btn)
+
+        layout.addWidget(view_group)
+        self.setLayout(layout)
+
+
+    def drop_view(self):
+        selected_view = self.view_combo.currentText()
+        if not selected_view:
+            QMessageBox.warning(self, "Ошибка", "Выберите MATERIALIZE VIEW для удаления")
+            return
+
+        try:
+            query = f"DROP MATERIALIZE VIEW {selected_view}"
+            json_string = '{"alter_string": "' + query + '"}'
+            json_data = json.loads(json_string)
+            r = requests.post('http://localhost:3000/user_type', json=json_data)
+
+            if r.status_code == 200:
+                QMessageBox.information(self, "Успех", f"MATERIALIZE VIEW '{selected_view}' успешно удален!")
+                makeLog(f"Удален VIEW: {selected_view}")
+            else:
+                QMessageBox.critical(self, "Ошибка", f"Ошибка при удалении MATERIALIZE VIEW: {r.text}")
+                makeLog(f"Ошибка при удалении VIEW: {r.text}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при удалении MATERIALIZE VIEW: {str(e)}")
+            makeLog(f"Ошибка при удалении VIEW: {str(e)}")
+
+
+class MatViewManagementDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Управление MATERIALIZE VIEW")
+        self.setModal(True)
+        self.setGeometry(200, 200, 600, 400)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        self.create_button = QPushButton('Создать MATERIALIZE VIEW')
+        self.create_button.clicked.connect(self.create_view)
+
+        self.show_button = QPushButton('Просмотреть MATERIALIZE VIEW')
+        self.show_button.clicked.connect(self.show_view)
+
+        self.update_button = QPushButton('Обновить MATERIALIZE VIEW')
+        self.update_button.clicked.connect(self.update_view)
+
+        self.drop_button = QPushButton('Удалить MATERIALIZE VIEW')
+        self.drop_button.clicked.connect(self.drop_view)
+
+        self.close_button = QPushButton('Закрыть')
+        self.close_button.clicked.connect(self.close)
+
+        view_layout = QVBoxLayout()
+        view_layout.addWidget(self.create_button)
+        view_layout.addWidget(self.show_button)
+        view_layout.addWidget(self.update_button)
+        view_layout.addWidget(self.drop_button)
+        view_layout.addWidget(self.close_button)
+        view_layout.addStretch()
+
+        view_box = QGroupBox("Управление представлениями (MATERIALIZE VIEW)")
+        view_box.setLayout(view_layout)
+
+        layout.addWidget(view_box)
+        self.setLayout(layout)
+
+    def create_view(self):
+        dlg = CreateMatViewDialog(self)
+        dlg.exec()
+
+    def show_view(self):
+        dlg = ShowMatViewDialog(self)
+        dlg.exec()
+
+    def update_view(self):
+        dlg = UpdateMatViewDialog(self)
+        dlg.exec()
+
+    def drop_view(self):
+        dlg = DropMatViewDialog(self)
+        dlg.exec()
+
+
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -3249,7 +5362,7 @@ class MainWindow(QWidget):
         self.setGeometry(200, 200, 1000, 500)
         self.process = None
 
-        self.conn_form = QFormLayout() # макет для блока подключения
+        self.conn_form = QFormLayout()  # макет для блока подключения
         # текстовые поля для блока подключения
         self.lineedit_host = QLineEdit("localhost")
         self.lineedit_port = QLineEdit("5436")
@@ -3268,12 +5381,12 @@ class MainWindow(QWidget):
 
         # создание и именование блока подключение
         self.conn_box = QGroupBox("Параметры подключения (SQLAlchemy)")
-        self.conn_box.setLayout(self.conn_form) # установка макета в блок
+        self.conn_box.setLayout(self.conn_form)  # установка макета в блок
 
-        self.w_layout = QVBoxLayout() # общий макет всего окна
-        self.w_layout.addWidget(self.conn_box) # добавление блока подключения в общий макет
+        self.w_layout = QVBoxLayout()  # общий макет всего окна
+        self.w_layout.addWidget(self.conn_box)  # добавление блока подключения в общий макет
 
-        self.newdb_grid_buttons = QGridLayout() # сетка-макет кнопок для работы с подключением и созданием бд
+        self.newdb_grid_buttons = QGridLayout()  # сетка-макет кнопок для работы с подключением и созданием бд
         self.button_conn = QPushButton('Подключиться')
         self.button_conn.clicked.connect(self.do_connect)
         self.button_disconn = QPushButton('Отключиться')
@@ -3287,9 +5400,20 @@ class MainWindow(QWidget):
         self.newdb_grid_buttons.addWidget(self.button_conn, 0, 0)
         self.newdb_grid_buttons.addWidget(self.button_disconn, 0, 1)
         self.newdb_grid_buttons.addWidget(self.button_create, 1, 0, 1, 2)
-        self.w_layout.addLayout(self.newdb_grid_buttons) # добавление сетки кнопок в общий макет
+        self.w_layout.addLayout(self.newdb_grid_buttons)  # добавление сетки кнопок в общий макет
 
-        self.w_layout.addSpacing(30) # пробел между кнопками создания таблицы и работы с таблицей
+        self.button_viewdb = QPushButton('Управление VIEW')
+        self.button_viewdb.clicked.connect(self.manageViews)
+        self.button_viewdb.setDisabled(True)
+
+        self.button_mat_viewdb = QPushButton('Управление MATERIALIZE VIEW')
+        self.button_mat_viewdb.clicked.connect(self.manageMatViews)
+        self.button_mat_viewdb.setDisabled(True)
+
+        # В сетке curdb_grid_buttons добавьте новую кнопку:
+
+
+        self.w_layout.addSpacing(30)  # пробел между кнопками создания таблицы и работы с таблицей
 
         self.button_adddata = QPushButton('Добавить данные')
         self.button_showdb = QPushButton('Вывести данные')
@@ -3304,17 +5428,27 @@ class MainWindow(QWidget):
         self.button_alterdb.setDisabled(True)
         self.button_udtdb.setDisabled(True)
 
-        self.curdb_grid_buttons = QGridLayout() # сетка-макет кнопок для работы с нынешней бд
+        self.curdb_grid_buttons = QGridLayout()  # сетка-макет кнопок для работы с нынешней бд
         self.curdb_grid_buttons.addWidget(self.button_adddata, 0, 0)
         self.curdb_grid_buttons.addWidget(self.button_showdb, 0, 1)
         self.curdb_grid_buttons.addWidget(self.button_alterdb, 2, 0, 1, 2)
         self.curdb_grid_buttons.addWidget(self.button_udtdb, 3, 0, 1, 2)
-        self.w_layout.addLayout(self.curdb_grid_buttons) # добавление сетки кнопок в общий макет
+        self.curdb_grid_buttons.addWidget(self.button_viewdb, 4, 0, 1, 2)
+        self.curdb_grid_buttons.addWidget(self.button_mat_viewdb, 5, 0, 1, 2)
+        self.w_layout.addLayout(self.curdb_grid_buttons)  # добавление сетки кнопок в общий макет
 
 
 
         self.w_layout.addStretch()  # объекты прилипают друг к другу, поэтому блок подключения не растягивается при расширении окна
-        self.setLayout(self.w_layout) # установка общего макета
+        self.setLayout(self.w_layout)  # установка общего макета
+
+    def manageViews(self):
+        dlg = ViewManagementDialog(self)
+        dlg.exec()
+
+    def manageMatViews(self):
+        dlg = MatViewManagementDialog(self)
+        dlg.exec()
 
     def current_cfg(self) -> PgConfig:
         try:
@@ -3337,10 +5471,11 @@ class MainWindow(QWidget):
             return
         cfg = self.current_cfg()
         f = open("sqlmicroservise/.env", "w")
-        f.write(f'#Application \nPRODUCTION_TYPE=prod\nCRYPTOGRAPHY_SECRET_KEY="1234567890123456" \nPOSTGRES_HOST={cfg.host} \nPOSTGRES_PORT={cfg.port} \nPOSTGRES_USER={cfg.user} \nPOSTGRES_PASSWORD={cfg.password} \nPOSTGRES_DB={cfg.dbname}\nPGDATA_PATH="/var/lib/postgresql/data/pgdata"')
+        f.write(
+            f'#Application \nPRODUCTION_TYPE=prod\nCRYPTOGRAPHY_SECRET_KEY="1234567890123456" \nPOSTGRES_HOST={cfg.host} \nPOSTGRES_PORT={cfg.port} \nPOSTGRES_USER={cfg.user} \nPOSTGRES_PASSWORD={cfg.password} \nPOSTGRES_DB={cfg.dbname}\nPGDATA_PATH="/var/lib/postgresql/data/pgdata"')
         f.close()
         self.process = subprocess.Popen(
-        ['go', 'run', 'cmd/app/main.go'],
+            ['go', 'run', 'cmd/app/main.go'],
             cwd='sqlmicroservise',  # меняем рабочую директорию
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -3357,6 +5492,8 @@ class MainWindow(QWidget):
             self.button_disconn.setDisabled(False)
             self.button_alterdb.setDisabled(False)
             self.button_udtdb.setDisabled(False)
+            self.button_viewdb.setDisabled(False)
+            self.button_mat_viewdb.setDisabled(False)
         else:
             makeLog("Ошибка запуска:")
 
@@ -3370,6 +5507,8 @@ class MainWindow(QWidget):
         self.button_disconn.setDisabled(True)
         self.button_alterdb.setDisabled(True)
         self.button_udtdb.setDisabled(True)
+        self.button_viewdb.setDisabled(True)
+        self.button_mat_viewdb.setDisabled(True)
         makeLog("Соединение закрыто.")
 
     def reset_db(self):

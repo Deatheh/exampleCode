@@ -157,6 +157,104 @@ ORDER BY ti.schema_name, ti.type_name;`
 	return results, nil
 }
 
+func (at *AllTable) GetAllView() ([]map[string]interface{}, error) {
+	query := `SELECT 
+    table_name as view_name
+FROM information_schema.views 
+WHERE table_schema NOT IN ('information_schema', 'pg_catalog')`
+
+	rows, err := at.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get data from employee table: %v", err)
+	}
+
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+
+	for rows.Next() {
+		values := make([]interface{}, len(columns))
+		scanArgs := make([]interface{}, len(columns))
+
+		for i := range values {
+			scanArgs[i] = &values[i]
+		}
+
+		err := rows.Scan(scanArgs...)
+		if err != nil {
+			return nil, err
+		}
+
+		rowMap := make(map[string]interface{})
+		for i, col := range columns {
+			switch v := values[i].(type) {
+			case []byte:
+				rowMap[col] = string(v)
+			default:
+				rowMap[col] = v
+			}
+		}
+
+		results = append(results, rowMap)
+	}
+
+	return results, nil
+}
+
+func (at *AllTable) GetAllMatView() ([]map[string]interface{}, error) {
+	query := `SELECT 
+    matviewname as view_name
+FROM pg_matviews 
+WHERE schemaname NOT IN ('information_schema', 'pg_catalog')`
+
+	rows, err := at.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get data from employee table: %v", err)
+	}
+
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+
+	for rows.Next() {
+		values := make([]interface{}, len(columns))
+		scanArgs := make([]interface{}, len(columns))
+
+		for i := range values {
+			scanArgs[i] = &values[i]
+		}
+
+		err := rows.Scan(scanArgs...)
+		if err != nil {
+			return nil, err
+		}
+
+		rowMap := make(map[string]interface{})
+		for i, col := range columns {
+			switch v := values[i].(type) {
+			case []byte:
+				rowMap[col] = string(v)
+			default:
+				rowMap[col] = v
+			}
+		}
+
+		results = append(results, rowMap)
+	}
+
+	return results, nil
+}
+
 func (at *AllTable) AddType(query string) error {
 	at.db.QueryRow(query)
 	return nil

@@ -175,3 +175,85 @@ QHeaderView::section {
     padding-left: 4px;
     border: 1px solid #000;
 }
+
+/* Добавьте эти стили в конец файла styles.qss */
+
+QListWidget {
+    border-radius: 8px;
+    border: 1px solid #2e2e2ef4;
+    padding: 5px;
+    background-color: white;
+    outline: none;
+}
+
+QListWidget:focus {
+    border: 1px solid #6a5585;
+}
+
+QListWidget::item {
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin: 2px;
+    border: 1px solid transparent;
+}
+
+QListWidget::item:hover {
+    background-color: #e9ecef;
+    border: 1px solid #dee2e6;
+}
+
+QListWidget::item:selected {
+    background-color: #0d6efd;
+    color: white;
+    border: 1px solid #0c58c9;
+}
+
+QListWidget::item:selected:active {
+    background-color: #0c58c9;
+}
+
+QScrollBar:vertical {
+    border: none;
+    background-color: #f8f9fa;
+    width: 12px;
+    margin: 0px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #ced4da;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #adb5bd;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+QScrollBar:horizontal {
+    border: none;
+    background-color: #f8f9fa;
+    height: 12px;
+    margin: 0px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #ced4da;
+    border-radius: 6px;
+    min-width: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #adb5bd;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+}

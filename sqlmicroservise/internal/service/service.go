@@ -40,6 +40,8 @@ type All interface {
 	GetAllTypes() ([]map[string]interface{}, error)
 	AddType(queru string) error
 	GetAllTypesWithValues() ([]map[string]interface{}, error)
+	GetAllView() ([]map[string]interface{}, error)
+	GetAllMatView() ([]map[string]interface{}, error)
 }
 
 type Service struct {

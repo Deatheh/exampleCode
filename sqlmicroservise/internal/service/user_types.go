@@ -22,6 +22,22 @@ func (as AllService) GetAllTypesWithValues() ([]map[string]interface{}, error) {
 	return res, nil
 }
 
+func (as AllService) GetAllView() ([]map[string]interface{}, error) {
+	res, err := as.repository.GetAllView()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (as AllService) GetAllMatView() ([]map[string]interface{}, error) {
+	res, err := as.repository.GetAllMatView()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (as AllService) AddType(queru string) error {
 	err := as.repository.AddType(queru)
 	if err != nil {

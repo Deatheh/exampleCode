@@ -63,6 +63,8 @@ func (h *Handler) InitRoutes() *fiber.App {
 		userType.Get("", h.HandlerGetAllUserType)
 		userType.Post("", h.HandlerAddType)
 		userType.Get("/values", h.HandlerGetAllUserTypeWithValues)
+		userType.Get("/view", h.HandlerGetAllView)
+		userType.Get("/matview", h.HandlerGetAllMatView)
 	}
 	return r
 }

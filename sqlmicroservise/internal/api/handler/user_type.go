@@ -26,6 +26,24 @@ func (h *Handler) HandlerGetAllUserTypeWithValues(c fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(data)
 }
 
+func (h *Handler) HandlerGetAllView(c fiber.Ctx) error {
+	data, err := h.services.All.GetAllView()
+	if err != nil {
+		fmt.Println(err.Error())
+		return c.Status(http.StatusInternalServerError).JSON(err.Error())
+	}
+	return c.Status(http.StatusOK).JSON(data)
+}
+
+func (h *Handler) HandlerGetAllMatView(c fiber.Ctx) error {
+	data, err := h.services.All.GetAllMatView()
+	if err != nil {
+		fmt.Println(err.Error())
+		return c.Status(http.StatusInternalServerError).JSON(err.Error())
+	}
+	return c.Status(http.StatusOK).JSON(data)
+}
+
 func (h *Handler) HandlerAddType(c fiber.Ctx) error {
 	var query entities.InputAlter
 	err := c.Bind().JSON(&query)
